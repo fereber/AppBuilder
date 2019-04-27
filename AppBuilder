@@ -956,6 +956,1270 @@ cmd_remove() {
   fi
 }
 
+# COMMAND: Vagrant
+#
+_HELP[vagrant]=$(cat << HELPVAGRANTFILE
+The \`vagrant\` command creates a Vagrantfile in the <PATH> directory.
+
+  Usage:
+    $(basename "${0}") vagrant --path <path> [options]
+
+  Options:
+    -i, --ip <ipadress> IP adress for private network [default: 192.168.33.10]
+    -p, --path <path>   Place the \`Vagrantfile\` (required)
+    -h, --help          Display this help
+        --debug         Run debug mode
+HELPVAGRANTFILE
+)
+
+cmd_vagrant() {
+
+  ! _check_desktop && printf "%b\n" "${_CHAS_MESSAGE}" && exit 1
+
+  local _PATH=""
+  local _IP="192.168.33.10"
+
+  # Options parser
+  _OPTS_VAGRANT=$(getopt --options hp:i --long help,debug,path:,ip --name "$(basename "${0}") ${_CMD}" -- "${@}")
+  if [ $? != 0 ] ; then _error "invalid option(s)" ; fi
+  eval set -- "${_OPTS_VAGRANT}"
+
+  while true ; do
+    case "${1}" in
+      -h|--help) cmd_help ${_CMD}; shift ;;
+      --debug) set -x ; _DEBUG=true ; shift ;;
+      -p|--path) _VAGRANT=true ; _PATH=${2} ; shift 2 ;;
+      -i|--ip) _IP="${2}" ; shift 2 ;;
+      --) shift ; break ;;
+      *) _error "internal option error '${1}'" ;;
+    esac
+  done
+
+  if ! "${_VAGRANT:-false}"; then
+    _error "missing required option -- 'path'"
+  else
+    [ ! -d "${_PATH}" ] && printf  "No such directory - '%s'\n" "${_PATH}"
+    if [ ! -f "${_PATH}/Vagrantfile" ]; then
+      # Create a Vagrantfile to the $PATH directory
+      cat > ${_PATH}/Vagrantfile <<VRAGANTFILE
+# -*- mode: ruby -*-
+# vi: set ft=ruby :
+# Overwrite host locale in vagrant ssh session
+ENV["LC_ALL"] = "en_US.UTF-8"
+Vagrant.configure("2") do |config|
+  config.vm.box = "ubuntu/bionic64"
+  config.vm.network "private_network", ip: "${_IP}"
+  config.vm.hostname = "VPS"
+  config.vm.synced_folder "www/", "/var/www", create: true
+  config.vm.provider "virtualbox" do |vb|
+    vb.memory = "4096"
+    vb.name = "VPS-$RANDOM"
+    # Do not use NAT mode instead to use the PCnet or Paravirtualized network
+    vb.default_nic_type = "Am79C973"
+    vb.customize ["modifyvm", :id, "--natdnshostresolver1", "on"]
+    vb.customize ["modifyvm", :id, "--natdnsproxy1", "on"]
+    # Disable the cloudimg-console.log
+    # vb.customize [ "modifyvm", :id, "--uartmode1", "disconnected" ]
+  end
+end
+VRAGANTFILE
+
+      printf "A \`Vagrantfile\` has been placed in '%s' directory.\nYou are now ready to \`vagrant up\` your first virtual environment!\n  ⇢  Private network IP: $(tput setaf 3)%s$(tput sgr0)\n" "${_PATH}" "${_IP}"
+    else
+      printf "A Vagrantfile already exists in '%s'.\n" "${_PATH}"
+    fi
+  fi
+}
+
+# COMMAND: Nginx
+#
+_check_desktop && _NGINX_NOTE="  Note:\n    It's not recommended to run on desktop environment,\n    that's why this command is not allowed default.\n"
+
+_HELP[nginx]=$(cat << HELPNGINX
+The \`nginx\` command  builds the mainline version of Nginx from source.
+
+${_NGINX_NOTE}
+  Usage:
+    $(basename "${0}") nginx [options] [<arguments>...]
+
+  Options:
+    -i, --install       Install and rebuid Nginx for updating
+    -c, --config        Update all the config files and reload server
+    -b, --block         Add or update a server block
+                        argument <domainname>
+    -r, --root          Set server root path
+                        [default argument: '/var/www/<doman>/html']
+    -s, --ssl           Enable https server
+                        [default: disable]
+        --sub           Set subdomain alias
+                        argument <sugdomainalias>
+        --type=<args>   Set type for server block
+                        block types: <basic>|<php>|<fastcgi>|<odoo>|<nodejs>
+                        [default: basic]
+    -d, --disable       Disable server block
+                        argument: <domainname>
+    -h, --help          Display this help
+        --debug         Run debug mode
+        --force         Enable running on desktop
+HELPNGINX
+)
+
+# Note:
+#   * Clear https in Chrome: chrome://net-internals/#hsts
+
+cmd_nginx() {
+
+  # Options parser
+  local _DOMAIN=""
+  local _SUB=""
+  local _DISABLE_SITE=""
+  local _ROOT_PATH="/var/www"
+  _OPTS_NGINX=$(getopt --options hficb:r:s,d: --long help,debug,install,config,block:,root:,ssl,type::,sub:,disable:,force --name "$(basename "${0}") ${_CMD}" -- "${@}")
+  if [ $? != 0 ] ; then _error "invalid option(s)" ; fi
+  eval set -- "${_OPTS_NGINX}"
+
+  while true ; do
+    case "${1}" in
+      -h|--help) cmd_help ${_CMD} ; shift ;;
+      --debug) set -x ; _DEBUG=true ; shift ;;
+      -i|--install) _INSTALL=true ; shift ;;
+      -c|--config) _CONFIG=true ; shift ;;
+      -b|--block) _DOMAIN="${2}" ; shift 2 ;;
+      -r|--root) _CUSTOM_ROOT=true ; _ROOT_PATH="${2}" ; shift 2 ;;
+      --sub) _SUB="${2}" ; shift 2 ;;
+      --type)
+        case "${2}" in
+          "basic"|"php"|"fastcgi"|"odoo"|"nodejs") _BLOCK_TYPE=${2} ; shift 2 ;;
+          *) _error "unsupported type of server block -- '${2}'" ; shift ;;
+        esac ;;
+      -s|--ssl) _SSL=true ; shift ;;
+      -d|--disable) _DISABLE_SITE="${2}" ; shift 2 ;;
+      --force) _FORCE=true ; shift ;;
+      --) shift ; break ;;
+      *) _error "internal option error '${1}'" ;;
+    esac
+  done
+
+  if ! "${_FORCE:-false}"; then
+    _check_desktop && printf "%b\n" "${_CHAS_MESSAGE}" && exit 1
+  fi
+
+  local _VER_LAT_NGINX="$(echo $(curl -s http://nginx.org/en/CHANGES) | grep -m1 'Changes with nginx' | cut -d' ' -f4)"
+  local _VER_PCRE="8.43"
+  local _VER_ZLIB="1.2.11"
+  local _VER_OPENSSL="1.1.1b"
+  local _VER_GEOIP2="3.2"
+  local _IP="$(hostname -I | awk '{print $1}')"
+  [[ "${_FORCE:-false}" ]] && local _IP="$(hostname -i)"
+  [ -d /home/vagrant ] && local _IP="$(hostname -I | awk '{print $2}')"
+  local _USER_WEB="www-data"
+  local _THIS_HOST=$(hostname)
+
+  if hash nginx 2>/dev/null; then
+    _VER_CUR_NGINX="$(echo $(nginx -v 2>&1) | cut -d/ -f 2)"
+    # Check version
+    if _check_version $_VER_LAT_NGINX $_VER_CUR_NGINX; then
+      printf "A newer version (%s) is available than the current version (%s)!\n" "${_VER_LAT_NGINX}" "${_VER_CUR_NGINX}"
+      read -p "Do you want me to update? [y/n] " REPLY
+    else
+      printf " ✔  Nginx (%s) is up to date!\n" "${_VER_CUR_NGINX}"
+      if "${_INSTALL:-false}"; then
+        read -p "Do you want me to rebuild? [y/n] " REPLY
+      fi
+    fi
+  else
+    read -p "Do you want to install the Nginx server? [y/n] " REPLY
+    [[ "${REPLY:-}" =~ ^[Nn]$ ]] && exit 0
+  fi
+
+  ##
+  # Installing Nginx
+  ##
+  if [[ "${REPLY:-}" =~ ^[Yy]$ ]]; then
+
+    _VER_NGINX=${_VER_LAT_NGINX}
+
+    # Make a backup
+    if [ -d "/etc/nginx" ]; then
+      _BACKUP_TIME="$(LC_ALL=C date +%Y%m%d_%H%M%S)"
+      sudo mv /etc/nginx /etc/nginx_backup_${_BACKUP_TIME}
+    fi
+
+    # Downloading Nginx and its dependencies
+    if [ ! -d "/tmp/nginx-${_VER_NGINX}" ]; then
+      wget -qO- https://nginx.org/download/nginx-${_VER_NGINX}.tar.gz -O /tmp/nginx-${_VER_NGINX}.tar.gz
+      tar -xvzf /tmp/nginx-${_VER_NGINX}.tar.gz -C /tmp
+    fi
+    if [ ! -d "/tmp/openssl-${_VER_OPENSSL}" ]; then
+      wget -qO- https://www.openssl.org/source/openssl-${_VER_OPENSSL}.tar.gz -O /tmp/openssl-${_VER_OPENSSL}.tar.gz
+      tar -xvzf /tmp/openssl-${_VER_OPENSSL}.tar.gz -C /tmp
+    fi
+    if [ ! -d "/tmp/pcre-${_VER_PCRE}" ]; then
+      wget -qO- https://ftp.pcre.org/pub/pcre/pcre-${_VER_PCRE}.tar.gz -O /tmp/pcre-${_VER_PCRE}.tar.gz
+      tar -xvzf /tmp/pcre-${_VER_PCRE}.tar.gz -C /tmp
+    fi
+    if [ ! -d "/tmp/zlib-${_VER_ZLIB}" ]; then
+      wget -qO- https://zlib.net/zlib-${_VER_ZLIB}.tar.gz -O /tmp/zlib-${_VER_ZLIB}.tar.gz
+      tar -xvzf /tmp/zlib-${_VER_ZLIB}.tar.gz -C /tmp
+    fi
+    if [ ! -d "/tmp/ngx_http_geoip2_module-${_VER_GEOIP2}" ]; then
+      wget -qO- https://github.com/leev/ngx_http_geoip2_module/archive/${_VER_GEOIP2}.tar.gz -O /tmp/${_VER_GEOIP2}.tar.gz
+      tar -xvzf /tmp/${_VER_GEOIP2}.tar.gz -C /tmp
+    fi
+
+    # Add nginx user group if they do not already exist
+    sudo id -g nginx &>/dev/null || sudo addgroup --system nginx
+    sudo id -u nginx &>/dev/null || ( sudo adduser --disabled-password --system --home /var/cache/nginx --shell /sbin/nologin --group nginx || _error "adding new nginx user and group" )
+
+    # Nginx's some directory is not created by default
+    sudo mkdir -p /var/cache/nginx/{client_temp,proxy_temp,fastcgi_temp,uwsgi_temp,scgi_temp}
+
+    # Install required softwares
+    sudo apt install -y build-essential
+
+    # Update or install GeoIP2 database
+    if hash geoipupdate 2>/dev/null; then
+      if [ ! -f "/usr/share/GeoIP/.geoipupdate.lock" ]; then
+        (sudo geoipupdate) &
+        _spinner $! "Updating GeoIP database \`/usr/share/GeoIP\`.\nThis is going to take a few minutes."
+      fi
+    else
+      sudo add-apt-repository ppa:maxmind/ppa -y
+      sudo apt update -qq
+      sudo apt install -y geoipupdate libmaxminddb-dev
+      sudo geoipupdate
+    fi
+
+    # You can verify compiler support for __uint128_t with the following
+    # https://wiki.openssl.org/index.php/Compilation_and_Installation
+    if gcc -dM -E - </dev/null | grep __SIZEOF_INT128__  ; 	then _ENABLE_EC="enable-ec_nistp_64_gcc_128"; else _ENABLE_EC=""; fi
+
+    cd /tmp/nginx-${_VER_NGINX}
+    ./configure \
+      --prefix=/etc/nginx \
+      --with-pcre=../pcre-${_VER_PCRE} \
+      --with-zlib=../zlib-${_VER_ZLIB} \
+      --with-openssl=../openssl-${_VER_OPENSSL} \
+      --add-dynamic-module=../ngx_http_geoip2_module-${_VER_GEOIP2} \
+      --with-openssl-opt="no-weak-ssl-ciphers no-ssl3 enable-tls1_3 no-shared ${_ENABLE_EC} -DOPENSSL_NO_HEARTBEATS -fstack-protector-strong" \
+      --with-cc-opt='-g -O2 -fPIE -fstack-protector-strong -Wformat -Werror=format-security -fPIC -Wdate-time -D_FORTIFY_SOURCE=2' \
+      --with-ld-opt='-Wl,-Bsymbolic-functions -fPIE -pie -Wl,-z,relro -Wl,-z,now -fPIC' \
+      --sbin-path=/usr/sbin/nginx \
+      --conf-path=/etc/nginx/nginx.conf \
+      --pid-path=/var/run/nginx.pid \
+      --lock-path=/var/run/nginx.lock \
+      --modules-path=/usr/lib/nginx/modules \
+      --error-log-path=/var/log/nginx/error.log \
+      --http-log-path=/var/log/nginx/access.log \
+      --http-client-body-temp-path=/var/cache/nginx/client_temp \
+      --http-proxy-temp-path=/var/cache/nginx/proxy_temp \
+      --http-fastcgi-temp-path=/var/cache/nginx/fastcgi_temp \
+      --http-uwsgi-temp-path=/var/cache/nginx/uwsgi_temp \
+      --http-scgi-temp-path=/var/cache/nginx/scgi_temp \
+      --with-http_ssl_module \
+      --user=nginx \
+      --group=nginx \
+      --with-file-aio \
+      --with-pcre-jit \
+      --with-stream \
+      --with-stream_ssl_module \
+      --with-threads \
+      --with-http_auth_request_module \
+      --with-http_gunzip_module \
+      --with-http_gzip_static_module \
+      --with-http_mp4_module \
+      --with-http_flv_module \
+      --with-http_realip_module \
+      --with-http_secure_link_module \
+      --with-http_slice_module \
+      --with-http_ssl_module \
+      --with-http_v2_module \
+      --with-http_stub_status_module \
+      --with-http_sub_module \
+      --without-http_empty_gif_module \
+      --without-http_split_clients_module \
+      --without-http_ssi_module \
+      --without-mail_imap_module \
+      --without-mail_pop3_module \
+      --without-mail_smtp_module
+
+    (sudo make --no-print-directory >/dev/null 2>/dev/null) &
+    _spinner $! "Make Nginx..."
+    sudo make install > /dev/null
+    sudo make clean > /dev/null
+
+    sudo ln -s /usr/lib/nginx/modules /etc/nginx/modules
+
+    # Allow UFW for Nginx
+    sudo bash -c "cat > /etc/ufw/applications.d/nginx" <<NGINXUFW
+[Nginx HTTP]
+title=Web Server (Nginx, HTTP)
+description=Small, but very powerful and efficient web server
+ports=80/tcp
+
+[Nginx HTTPS]
+title=Web Server (Nginx, HTTPS)
+description=Small, but very powerful and efficient web server
+ports=443/tcp
+
+[Nginx Full]
+title=Web Server (Nginx, HTTP + HTTPS)
+description=Small, but very powerful and efficient web server
+ports=80,443/tcp
+NGINXUFW
+    sudo ufw allow 'Nginx Full' comment 'Web Server (HTTP + HTTPS)' > /dev/null
+
+    # Restoring config files
+    if [ -d "/etc/nginx_backup_${_BACKUP_TIME:-}" ]; then
+      # Keep the compiled 'fresh install' files in /etc/nginx/nginx_default
+      if [ -d "/etc/nginx_default" ]; then
+        sudo rm -rf /etc/nginx_default
+      fi
+      sudo mv /etc/nginx /etc/nginx_default
+      sudo mv /etc/nginx_backup_${_BACKUP_TIME:-} /etc/nginx
+      sudo cp /etc/nginx_default/*.default /etc/nginx/
+    fi
+    printf "✔ Nginx is downloaded and installed.\n"
+    # Continue configurations...
+    _CONFIG=true
+  fi # ...end of Nginx server's downloading, updating or installing
+
+  ##
+  # Configure Nginx
+  ##
+  if "${_CONFIG:-false}"; then
+
+    # Create server directories if doesn't exists
+    sudo mkdir -p \
+      /etc/{nginx/conf.d,nginx/snippets,letsencrypt} \
+      /var/www/{default_server/html,_letsencrypt,_cache}
+
+    # Nginx default config file
+    sudo bash -c "cat > /etc/nginx/nginx.conf" <<NGINXCONFIG
+##
+# Modules
+##
+load_module modules/ngx_http_geoip2_module.so;
+
+##
+# Nginx Configurations
+##
+user ${_USER_WEB};
+worker_processes auto;
+error_log /var/log/nginx/error.log warn;
+pid /var/run/nginx.pid;
+
+events {
+    worker_connections 1024;
+    use epoll;
+    multi_accept on;
+}
+
+http {
+    ##
+    # Index directive one time
+    ##
+    index index.php index.htm index.html;
+
+    ##
+    # GeoIP Database
+    ##
+    geoip2 /usr/share/GeoIP/GeoLite2-Country.mmdb {
+        \$geoip2_data_country_code country iso_code;
+    }
+
+    include /etc/nginx/mime.types;
+    default_type application/octet-stream;
+
+    ##
+    # Log format (.csv compatible)
+    ##
+    log_format main '--- "\$time_iso8601"; "\$remote_addr"; "\$status"; '
+    '"\$request"; "\$http_user_agent"; "\$http_referer"; '
+    '"\$http_x_forwarded_for"; "\$remote_user"; "\$body_bytes_sent"; '
+    '"\$ssl_protocol"; "\$ssl_cipher"; ';
+    access_log /var/log/nginx/access.log  main;
+
+    sendfile on;
+    tcp_nopush on;
+    tcp_nodelay on;
+    keepalive_timeout 65;
+    client_max_body_size 100M;
+    client_body_buffer_size 1m;
+
+    ##
+    # Secure config
+    ##
+    server_tokens off;
+    add_header X-Content-Type-Options nosniff always;
+    add_header X-Frame-Options SAMEORIGIN always;
+    add_header X-XSS-Protection "1; mode=block" always;
+    add_header Strict-Transport-Security "max-age=31536000" always;
+    add_header Content-Security-Policy "default-src 'self' https://*; connect-src 'self' https://* wss://*; font-src 'self' https://* blob: data:; frame-src 'self' https://* blob: data:; img-src 'self' https://* blob: data:; media-src 'self' https://* blob: data:; object-src 'self' https://* blob: data:; script-src 'self' https://* 'unsafe-inline' 'unsafe-eval'; style-src 'self' https://* 'unsafe-inline';";
+    add_header "X-UA-Compatible" "IE=Edge";
+
+    ##
+    # Cache-Control - Expiration
+    ##
+    map \$sent_http_content_type \$expires {
+        default                    off;
+        text/html                  epoch;
+        text/css                   14d;
+        application/javascript     max;
+        ~image/                    max;
+        ~video/                    max;
+        ~audio/                    max;
+    }
+
+    ##
+    # Enable GZIP
+    ##
+    gzip on;
+    gzip_comp_level 5;
+    gzip_min_length 256;
+    gzip_vary on;
+    gzip_proxied any;
+    gzip_types text/plain text/css application/javascript image/*;
+    gzip_disable "MSIE [1-6]\.(?!.*SV1)";
+
+    ##
+    # FastCGI cache config
+    ##
+    fastcgi_cache_key "\$scheme\$request_method\$host\$request_uri";
+    fastcgi_cache_use_stale error timeout invalid_header http_500;
+    fastcgi_ignore_headers Cache-Control Expires Set-Cookie;
+
+    ##
+    # Odoo server
+    ##
+    upstream odoo {
+        server 127.0.0.1:8069;
+    }
+    upstream odoochat {
+        server 127.0.0.1:8072;
+    }
+
+    ##
+    # NodeJS server
+    ##
+
+    ##
+    # Including serever block configurations
+    ##
+    include /etc/nginx/conf.d/*.conf;
+}
+NGINXCONFIG
+
+    # Nginx (global) restrictions config
+    sudo bash -c "cat > /etc/nginx/snippets/restrictions.conf" <<NGINXRESTRICTION
+##
+# Global restrictions (If custom error pages defined, than 'logging off' here is irrelevant)
+##
+location ~ /\. {
+    deny all;
+}
+
+location = /favicon.ico {
+  	log_not_found off;
+  	access_log off;
+    error_log off;
+}
+
+location = /robots.txt {
+    allow all;
+    log_not_found off;
+    access_log off;
+}
+
+##
+# WordPress specific config
+##
+location = /wp-config.php { deny all; }
+location = /wp-config-sample.php { return 404; }
+location = /readme.html { deny all; }
+# location = /xmlrpc.php { return 404; }
+location ~* /(license.txt|nginx.conf) { deny all; }
+location ~* /(?:uploads|files)/.*\.php\$ { deny all; }
+location ~* ^/(wp-content)/(.*?)\.(zip|gz|tar|bzip2|7z)\$ { deny all; }
+# WordPress EDD plugin
+rewrite ^/wp-content/uploads/edd/(.*)\.zip\$ / permanent;
+rewrite ^/media/edd/(.*)\.zip\$ / permanent;
+
+##
+# PhpMyadmin - Block attempts to access phpMyAdmin (If you actually use it, don't include this rule!)
+##
+# location ~* .([pP]hp[mM]y[aA]dmin) { return 404; }
+
+##
+# Disallow cgi scripts
+##
+# location ~* \.(pl|cgi|py|sh|lua)\$ { return 444; }
+# Make sure files with the following extensions do not get loaded by nginx because nginx would display the source code...
+# location ~* \.(engine|inc|info|install|make|module|profile|test|po|sh|.*sql|theme|tpl(\.php)?|xtmpl)\$|^(\..*|Entries.*|Repository|Root|Tag|Template)\$|\.php_ { return 444; }
+
+##
+# Maintenance - Allow full access to certain IP
+##
+# if (\$remote_addr != "192.168.33.1") { return 503; }
+NGINXRESTRICTION
+
+    # Nginx ssl-stapling config
+    sudo bash -c  "cat > /etc/nginx/snippets/ssl-stapling.conf" <<NGINXSSL
+##
+# SSL Stapling
+##
+ssl_stapling on;
+ssl_stapling_verify on;
+resolver 8.8.8.8 8.8.4.4 valid=60s;
+resolver_timeout 30s;
+NGINXSSL
+
+    # Nginx phpmyadmin config
+    sudo bash -c "cat > /etc/nginx/snippets/phpmyadmin.conf" <<NGINXPHPADMIN
+##
+# PhpMyAdmin
+##
+location /phpmyadmin {
+
+    root /usr/share/;
+    location ~ ^/phpmyadmin/(doc|sql|setup|libraries|templates)/ {
+        return 404;
+    }
+
+    location ~ ^/phpmyadmin/(.+\.php)\$ {
+        try_files \$uri =404;
+        fastcgi_index index.php;
+        fastcgi_pass unix:/run/php/php${_VER_PHP:-7.2}-fpm.sock;
+        include /etc/nginx/fastcgi.conf;
+    }
+
+    location ~* ^/phpmyadmin/(.+\.(jpg|jpeg|gif|css|png|js|ico|html|xml|txt))\$ {
+        root /usr/share/;
+    }
+
+}
+NGINXPHPADMIN
+
+    # Logrotate configuration
+    sudo bash -c "cat > /etc/logrotate.d/nginx" <<-NGINXLOGROTATE
+/var/log/nginx/*.log {
+    su root syslog
+    create 0640 www-data adm
+    daily
+    missingok
+    rotate 7
+    compress
+    delaycompress
+    notifempty
+    sharedscripts
+    postrotate
+        if [ -f /var/run/nginx.pid ]; then
+                kill -USR1 \`cat /var/run/nginx.pid\`
+        fi
+    endscript
+}
+
+# Turn to force the update
+# sudo logrotate -f -v /etc/logrotate.d/nginx
+NGINXLOGROTATE
+
+    # Enable logrotate compression
+    sudo sed -i "s/#compress/compress/g" /etc/logrotate.conf
+    # Turn to force the update
+    sudo logrotate -f -v /etc/logrotate.d/nginx &> /dev/null
+
+    # Add Block: Default server block
+    #
+    if [ -d "/home/vagrant" ]; then _return="# "; else _return=""; fi
+
+    if "${_SSL:-false}"; then
+      sudo bash -c "cat > /etc/nginx/conf.d/default.conf" <<HTTPSDEFAULTBLOCK
+server {
+    listen 80 default_server;
+    server_name _;
+    root /var/www/default_server/html;
+
+    ##
+    # Let's Encrypt Settings (it is necessary for the certificate to be renewable by certbot)
+    ##
+    location ^~ /.well-known/acme-challenge/ {
+        allow all;
+        default_type "text/plain";
+        root /var/www/_letsencrypt;
+    }
+
+    ##
+    # Log
+    ##
+    access_log /var/log/nginx/default-access.log main;
+    error_log /var/log/nginx/default-error.log;
+
+    ##
+    # Restrictions
+    ##
+    include /etc/nginx/snippets/restrictions.conf;
+
+    ${_return}return 444;
+
+}
+
+server {
+    listen 443 ssl http2 default_server;
+    server_name _;
+    root /var/www/default_server/html;
+
+    ##
+    # Let's Encrypt Settings
+    ##
+    location ^~ /.well-known/acme-challenge/ {
+        default_type "text/plain";
+        root /var/www/_letsencrypt;
+    }
+
+    ##
+    # SSL Enable
+    ##
+    ssl_prefer_server_ciphers on;
+    ssl_protocols TLSv1.2 TLSv1.3;
+    ssl_ciphers "EECDH+AESGCM:EDH+AESGCM:AES256+EECDH:AES256+EDH";
+    # ssl_cipher "TLS-CHACHA20-POLY1305-SHA256:TLS-AES-256-GCM-SHA384"; # More secure but less compatible
+    ssl_session_cache shared:SSL:10m;
+    ssl_session_timeout 10m;
+    ssl_session_tickets off; # Requires nginx >= 1.5.9
+    ssl_ecdh_curve secp384r1; # Requires nginx >= 1.1.0
+    ssl_dhparam /etc/letsencrypt/ssl-dhparams.pem;
+    ssl_certificate /etc/letsencrypt/live/${_THIS_HOST}/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/${_THIS_HOST}/privkey.pem;
+    ${_SSL_STAPLING:-}
+
+    ##
+    # Log
+    ##
+    access_log /var/log/nginx/access.log main;
+    error_log /var/log/nginx/error.log;
+
+    ##
+    # Restrictions
+    ##
+    include /etc/nginx/snippets/restrictions.conf;
+
+    ${_return}return 444;
+}
+HTTPSDEFAULTBLOCK
+    else
+      sudo bash -c "cat > /etc/nginx/conf.d/default.conf" <<HTTPDEFAULTBLOCK
+server {
+    listen 80 default_server;
+    server_name _;
+    root /var/www/default_server/html;
+
+    location ^~ /.well-known/acme-challenge/ {
+        allow all;
+        default_type "text/plain";
+        root /var/www/_letsencrypt;
+    }
+
+    ##
+    # Log
+    ##
+    access_log /var/log/nginx/default-access.log main;
+    error_log /var/log/nginx/default-error.log;
+
+    ##
+    # Restrictions
+    ##
+    include /etc/nginx/snippets/restrictions.conf;
+
+    ${_return}return 444;
+}
+HTTPDEFAULTBLOCK
+    fi
+
+    # Index file
+    sudo bash -c "cat > /var/www/default_server/html/index.html" <<INDEXHTML
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Server</title>
+  <meta name="description" content="Server">
+  <style>.center{text-align: center!important;}</style>
+  </head>
+  <body>
+    <p class="center">${_IP}</p>
+  </body>
+</html>
+INDEXHTML
+
+    # Add blank favicon.ico
+    if [ ! -f "/var/www/default_server/html/favicon.ico" ]; then
+      sudo touch /var/www/default_server/html/favicon.ico
+    fi
+
+    # Set ownership and permissions
+    sudo chown -R ${_USER_WEB}:${_USER_WEB} /var/www/default_server/html
+    sudo chown -R root:root /var/log/nginx
+
+    # Nginx init script
+    if [ -f "/lib/systemd/system/nginx.service" ]; then
+      _RELOAD_DEMON=true
+    fi
+    sudo bash -c "cat > /lib/systemd/system/nginx.service" <<NGINXSERVICE
+[Unit]
+Description=Nginx - HTTP and reverse proxy server
+After=network-online.target remote-fs.target nss-lookup.target
+Wants=network-online.target
+
+[Service]
+Type=forking
+PIDFile=/var/run/nginx.pid
+ExecStartPre=/usr/sbin/nginx -t -c /etc/nginx/nginx.conf
+ExecStart=/usr/sbin/nginx -c /etc/nginx/nginx.conf
+ExecReload=/bin/kill -s HUP \$MAINPID
+ExecStop=/bin/kill -s TERM \$MAINPID
+
+[Install]
+WantedBy=multi-user.target
+
+NGINXSERVICE
+    # Useful links:
+    #   https://www.nginx.com/resources/wiki/start/topics/examples/systemd/
+    #   http://nginx.org/en/docs/control.html
+
+    # [Unit]
+    # Description=Nginx - HTTP and reverse proxy server
+    # After=network.target nss-lookup.target
+    #
+    # [Service]
+    # Type=forking
+    # PIDFile=/run/nginx.pid
+    # ExecStartPre=/usr/sbin/nginx -t -q -g 'daemon on; master_process on;'
+    # ExecStart=/usr/sbin/nginx -g 'daemon on; master_process on;'
+    # # See https://github.com/angristan/nginx-autoinstall/issues/67
+    # ExecStartPost=/bin/sleep 0.1
+    # ExecReload=/usr/sbin/nginx -g 'daemon on; master_process on;' -s reload
+    # ExecStop=-/sbin/start-stop-daemon --quiet --stop --retry QUIT/5 --pidfile /run/nginx.pid
+    # TimeoutStopSec=5
+    # KillMode=mixed
+    #
+    # [Install]
+    # WantedBy=multi-user.target
+
+    # Reload deamon because of the modify (update)
+    if ${_RELOAD_DEMON:-}; then
+      sudo systemctl daemon-reload > /dev/null
+    fi
+
+    # Nginx service
+    if [[ $(systemctl status nginx.service | grep Active: | cut -d ' ' -f 5) != "active" ]]; then
+      # Enable Nginx to start on boot and start Nginx immediately
+      sudo systemctl enable nginx.service || _error "install and enable Nginx -- 'sysremctl'"
+      sudo systemctl start nginx.service || _error "install and starting Nginx -- 'sysremctl'"
+      # sudo ln -sf /lib/systemd/system/nginx.service /etc/systemd/system/multi-user.target.wants/
+      printf "✔  Starting Nginx is OK\n"
+      [ -d /home/vagrant ] && printf " ⇢  Default server: $(tput setaf 3)http://%s$(tput sgr0)\n" "${_IP}"
+    else
+      # Check if Nginx will automatically initiate after a reboot:
+      if [[ $(systemctl is-enabled nginx.service) != "enabled" ]]; then
+        sudo systemctl enable nginx.service || _error "configure and enable Nginx -- 'sysremctl'"
+      fi
+      sudo nginx -s reload || _error "configure and reloading Nginx"
+      printf " ✔  Nginx Reloading is OK\n"
+      [ -d /home/vagrant ] && printf " ⇢  Default server: $(tput setaf 3)http://%s$(tput sgr0)\n" "${_IP}"
+    fi
+  fi # ..end of server configure
+
+  ##
+  # Creating a server block
+  ###
+  if [[ -n "${_DOMAIN:-}" ]]; then
+
+    # If subdomain
+    if [[ -n "${_SUB}" ]]; then
+      _SUB="${_SUB}."
+    fi
+
+    # Set server root
+    if "${_CUSTOM_ROOT:-false}"; then
+      _ROOT_PATH=/var/www${_ROOT_PATH}
+    else
+      _ROOT_PATH=${_ROOT_PATH}/${_SUB}${_DOMAIN}/html
+    fi
+
+    # Only in case of testing on localhost
+    if [[ "${_DOMAIN}" == "${_THIS_HOST}" ]]; then
+      _ROOT_PATH=/var/www/default_server/html
+      _ssl_certificate
+      $(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/$(basename "$0") nginx --config --ssl
+      exit
+    fi
+
+    # Confirmation
+    printf "\nCreating / Updating a Server Block for %s\n" "${_SUB}${_DOMAIN}"
+    printf "  - domain:        %s\n" "${_SUB}${_DOMAIN}"
+    printf "  - root path:     %s\n" "${_ROOT_PATH}"
+    printf "  - ssl:           %s\n" "${_SSL:-false}"
+    printf "  - type:          %s\n" "${_BLOCK_TYPE:-basic}"
+    read -p "Are you sure? [y/n] " REPLY
+
+    if [[ "${REPLY:-}" =~ ^[Yy]$ ]]; then
+
+      # Set FQDN
+      _FQDN="${_IP} ${_THIS_HOST}.${_DOMAIN} ${_THIS_HOST}"
+      grep "${_FQDN}" /etc/hosts &>/dev/null || printf "%s\n" "${_FQDN}" | sudo tee -a /etc/hosts > /dev/null
+
+      # Create root path
+      sudo mkdir -p ${_ROOT_PATH}
+
+      # Add index file
+      if [ ! -f "${_ROOT_PATH}/index.html" ]; then
+        sudo bash -c "cat > "${_ROOT_PATH}"/index.html" <<INDEXHTML
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <title>Welcome to ${_DOMAIN}</title>
+        <meta name="description" content="Welcome to ${_DOMAIN}">
+        <style>.center{text-align: center!important;}</style>
+    </head>
+    <body>
+        <p class="center">Welcome to ${_DOMAIN}</p>
+    </body>
+</html>
+INDEXHTML
+      fi
+
+      # Add blank favicon.ico
+      if [ ! -f "${_ROOT_PATH}/favicon.ico" ]; then
+        sudo touch ${_ROOT_PATH}/favicon.ico
+      fi
+
+      ##
+      # START SERVER BLOCK [default: redirect www to non-www]
+      ##
+      sudo bash -c "cat > /etc/nginx/conf.d/${_SUB}${_DOMAIN}.conf" <<HTTPSERVERBLOCK
+server {
+    listen 80;
+    server_name www.${_SUB}${_DOMAIN};
+    return 301 http://${_SUB}${_DOMAIN}\$request_uri;
+}
+
+server {
+    listen 80;
+    server_name ${_SUB}${_DOMAIN};
+    root ${_ROOT_PATH};
+
+    ##
+    # Let's Encrypt Settings (it is necessary for the certificate to be renewable by certbot)
+    ##
+    location ^~ /.well-known/acme-challenge/ {
+        allow all;
+        default_type "text/plain";
+        root /var/www/_letsencrypt;
+    }
+
+HTTPSERVERBLOCK
+
+      if "${_SSL:-false}"; then
+
+        # Add Block: Restrictions ...and close a valid config file befor create certificate
+        #
+        sudo bash -c "cat >> /etc/nginx/conf.d/${_SUB}${_DOMAIN}.conf" <<RESTRICTIONSBLOCK
+    ##
+    # Restrictions
+    ##
+    include /etc/nginx/snippets/restrictions.conf;
+}
+RESTRICTIONSBLOCK
+
+        # Reloading
+        sudo nginx -s reload || _error "reloading Nginx -- 'befor creating SSL certificates'"
+
+        # Create a certificate
+        _ssl_certificate
+
+        # "Re-open" the block: Create new block for https
+        #
+        sudo bash -c "cat > /etc/nginx/conf.d/${_SUB}${_DOMAIN}.conf" <<HTTPSSERVERBLOCK
+server {
+    listen 80;
+    server_name ${_SUB}${_DOMAIN} www.${_SUB}${_DOMAIN};
+
+    ##
+    # Let's Encrypt Settings (it is necessary for the certificate to be renewable by certbot)
+    ##
+    location ^~ /.well-known/acme-challenge/ {
+        allow all;
+        default_type "text/plain";
+        root /var/www/_letsencrypt;
+    }
+
+    location / {
+        return 301 https://${_SUB}${_DOMAIN}\$request_uri;
+    }
+}
+
+server {
+    listen 443 ssl http2;
+    server_name www.${_SUB}${_DOMAIN};
+    ssl_dhparam /etc/letsencrypt/ssl-dhparams.pem;
+    ssl_certificate /etc/letsencrypt/live/${_DOMAIN}/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/${_DOMAIN}/privkey.pem;
+    return 301 https://${_SUB}${_DOMAIN}\$request_uri;
+}
+
+server {
+    listen 443 ssl http2;
+    server_name ${_SUB}${_DOMAIN};
+    root ${_ROOT_PATH};
+
+    ##
+    # Let's Encrypt Settings
+    ##
+    location ^~ /.well-known/acme-challenge/ {
+        default_type "text/plain";
+        root /var/www/_letsencrypt;
+    }
+
+    ##
+    # SSL Enable
+    ##
+    ssl_prefer_server_ciphers on;
+    ssl_protocols TLSv1.2 TLSv1.3;
+    ssl_ciphers "EECDH+AESGCM:EDH+AESGCM:AES256+EECDH:AES256+EDH";
+    # ssl_cipher "TLS-CHACHA20-POLY1305-SHA256:TLS-AES-256-GCM-SHA384"; # More secure but less compatible
+    ssl_session_cache shared:SSL:10m;
+    ssl_session_timeout 10m;
+    ssl_session_tickets off; # Requires nginx >= 1.5.9
+    ssl_ecdh_curve secp384r1; # Requires nginx >= 1.1.0
+    ssl_dhparam /etc/letsencrypt/ssl-dhparams.pem;
+    ssl_certificate /etc/letsencrypt/live/${_DOMAIN}/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/${_DOMAIN}/privkey.pem;
+    ${_SSL_STAPLING:-}
+
+HTTPSSERVERBLOCK
+      fi # ...end if $_SSL true
+
+      # Add Block: Log and chache config
+      #
+      sudo bash -c "cat >> /etc/nginx/conf.d/${_SUB}${_DOMAIN}.conf" <<LOGBLOCK
+    ##
+    # Log
+    ##
+    access_log /var/log/nginx/${_SUB}${_DOMAIN}-access.log main;
+    error_log /var/log/nginx/${_SUB}${_DOMAIN}-error.log;
+
+    ##
+    # Cache
+    ##
+    expires \$expires;
+
+LOGBLOCK
+
+      # Add Block: Odoo
+      #
+      if [[ "${_BLOCK_TYPE:-basic}" == "odoo" ]]; then
+        sudo bash -c "cat >> /etc/nginx/conf.d/${_SUB}${_DOMAIN}.conf" <<ODOOBLOCK
+    ##
+    # Odoo
+    ##
+    proxy_read_timeout 720s;
+    proxy_connect_timeout 720s;
+    proxy_send_timeout 720s;
+    proxy_set_header X-Forwarded-Host \$host;
+    proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
+    proxy_set_header X-Forwarded-Proto \$scheme;
+    proxy_set_header X-Real-IP \$remote_addr;
+
+    ##
+    # Redirect longpoll requests to odoo longpolling port
+    ##
+    location /longpolling {
+        proxy_pass http://odoochat;
+    }
+
+    ##
+    # Redirect requests to odoo backend server
+    ##
+    location / {
+      proxy_redirect off;
+      proxy_pass http://odoo;
+    }
+
+ODOOBLOCK
+      else # ...end if Odoo
+
+        # Add Block: 404 fall back
+        #
+        sudo bash -c "cat >> /etc/nginx/conf.d/${_SUB}${_DOMAIN}.conf" <<EOF
+    ##
+    # Fall back to displaying a 404
+    ##
+    location / {
+        try_files \$uri \$uri/ =404;
+    }
+
+EOF
+
+        # Add Block: PHP
+        #
+        if hash php 2>/dev/null; then
+
+          # Add to theblock: Php FastCGI
+          #
+          if [[ "${_BLOCK_TYPE:-basic}" == "fastcgi" ]]; then
+            sudo bash -c "cat >> /etc/nginx/conf.d/${_SUB}${_DOMAIN}.conf" <<FASTCGIBLOCK
+    ##
+    # Fascgi Cache
+    ##
+    set \$skip_cache 0;
+
+    # POST requests and urls with a query string should always go to PHP
+    if (\$request_method = POST) {
+      set \$skip_cache 1;
+    }
+    if (\$query_string != "") {
+        set \$skip_cache 1;
+    }
+
+    # Don't cache uris containing the following segments
+    if (\$request_uri ~* "/wp-admin/|/xmlrpc.php|wp-.*.php|/feed/|index.php|sitemap(_index)?.xml|/php-test/|/phpmyadmin/|/checkout/|/account/|/privacy.*/") {
+        set \$skip_cache 1;
+    }
+
+    # Don't use the cache for logged in users or recent commenters
+    if (\$http_cookie ~* "edd_items_in_cart|comment_author|wordpress_[a-f0-9]+|wp-postpass|wordpress_no_cache|wordpress_logged_in") {
+        set \$skip_cache 1;
+    }
+
+    ##
+    # PHP
+    ##
+    location ~ [^/]\.php(/|\$) {
+        # The name of the cache key-zone to use
+        fastcgi_cache fastcgicache_${_DOMAIN};
+        # What to cache: 'code 200' responses, for half an hour
+        fastcgi_cache_valid 200 30m;
+        # What to cache: only GET and HEAD requests (POST)
+        fastcgi_cache_methods GET HEAD;
+        # Allow us to see if the cache was HIT, MISS, or BYPASSED inside
+        # a browser's Inspector panel
+        add_header X-Fastcgi-Cache \$upstream_cache_status;
+        # Dont pull from the cache if true
+        fastcgi_cache_bypass \$skip_cache;
+        # Dont save to the cache if true
+        fastcgi_no_cache \$skip_cache;
+        proxy_cache_revalidate on;
+        proxy_cache_min_uses 3;
+        proxy_cache_use_stale error timeout updating http_500 http_502
+        http_503 http_504;
+        proxy_cache_background_update on;
+        proxy_cache_lock on;
+        try_files \$uri =404;
+        fastcgi_index index.php;
+        fastcgi_pass unix:/run/php/php${_VER_PHP:-7.2}-fpm.sock;
+        include /etc/nginx/fastcgi.conf;
+    }
+
+    # Check the page load response headers. Values of x-fastcgi-cache:
+    # - HIT    - The page is being returned from the NGINX FastCGI cache
+    # - MISS   - The page wasn't cached and was returned by PHP-FPM
+    #            (refreshing the page should return either a HIT or a BYPASS)
+    # - BYPASS - The page has been cached but the cached version wasn't served.
+    #            This occurs when it is a page that we have specified
+    #            to bypass the cache,
+    #            such as an admin page, or when a user is logged in.
+
+FASTCGIBLOCK
+          else # ... end php fastcgi
+
+            # Add Block: Basic Php
+            #
+            if [[ "${_BLOCK_TYPE:-basic}" == "php" ]]; then
+              sudo bash -c "cat >> /etc/nginx/conf.d/${_SUB}${_DOMAIN}.conf" <<BASICPHPBLOCK
+    ##
+    # Php
+    ##
+    location ~ \.php\$ {
+        try_files \$uri =404;
+        fastcgi_index index.php;
+        fastcgi_pass unix:/run/php/php${_VER_PHP:-7.2}-fpm.sock;
+        include /etc/nginx/fastcgi.conf;
+    }
+
+BASICPHPBLOCK
+            fi # ...end basic php
+          fi # ...end if not php fastcgi (basic php)
+
+          # Add Block: PhpMyAdmin
+          #
+          sudo bash -c "cat >> /etc/nginx/conf.d/${_SUB}${_DOMAIN}.conf" <<PHPMYADMINBLOCK
+    include /etc/nginx/snippets/phpmyadmin.conf;
+
+PHPMYADMINBLOCK
+        fi # ...end php
+      fi # ...end if not Odoo
+
+      # Add Block and finishing, closing: Restrictions
+      #
+      sudo bash -c "cat >> /etc/nginx/conf.d/${_SUB}${_DOMAIN}.conf" <<EOF
+    ##
+    # Restrictions
+    ##
+    include /etc/nginx/snippets/restrictions.conf;
+}
+EOF
+      ##
+      # END SERVER BLOCK
+      ##
+
+      # Fastcgi Cache Path
+      if hash php 2>/dev/null; then
+        if [[ "${_BLOCK_TYPE:-basic}" == "fastcgi" ]]; then
+          sudo bash -c "cat >> /etc/nginx/conf.d/${_SUB}${_DOMAIN}.conf" <<FASTCGICACHEPATH
+    ##
+    # Fastcgi Cache Path
+    ##
+    # fastcgi_cache_path /var/run/nginx-cache-fastcgi levels=1:2 keys_zone=fastcgicache_${_SUB}${_DOMAIN}:10m max_size=500m inactive=60m use_temp_path=off;
+    fastcgi_cache_path /var/www/_cache/${_DOMAIN} levels=1:2 keys_zone=fastcgicache_${_SUB}${_DOMAIN}:10m max_size=500m inactive=60m use_temp_path=off;
+FASTCGICACHEPATH
+        fi
+      fi
+
+
+      # Reload Nginx
+      sudo nginx -s reload || _error "reloading Nginx -- 'after adding a server block'"
+      printf "\n ✔  Server block for %s is ready!\n" "${_SUB}${_DOMAIN}"
+
+      # Print info message(s)
+      #
+      if "${_SSL:-false}"; then
+        _SCHEME="https"
+      else
+        _SCHEME="http"
+      fi
+
+      if [ -d "/home/vagrant" ]; then
+        # Info if MailCatcher running (Set your favourite app to deliver to local smtp://127.0.0.1:1025 instead of your default SMTP server.)
+        if hash mailcatcher 2>/dev/null; then
+          printf "  - check out http://%s:1080 to see the mail(s)\n" "${_IP}"
+        fi
+      fi
+
+      [[ "${_DOMAIN}" == "${_THIS_HOST}" ]] && _DOMAIN=${_IP}
+      printf "\nOpen up your web browser and navigate to following url:\n ⇢  $(tput setaf 3)%s://%s$(tput sgr0)\n" "${_SCHEME}" "${_SUB}${_DOMAIN}"
+
+
+    else # ... end if confirmation is YES
+      printf "Exiting...\n"
+      exit
+    fi
+  fi # ...end of creating server block
+
+  # Disable a server block
+  #
+  if [[ -n "${_DISABLE_SITE}" ]]; then
+    if [ -f "/etc/nginx/conf.d/${_DISABLE_SITE}.conf" ]; then
+      sudo mv /etc/nginx/conf.d/${_DISABLE_SITE}.conf /etc/nginx/conf.d/${_DISABLE_SITE}.disabled
+      printf " ✔  Site is disabled: %s\n" "${_DISABLE_SITE}"
+    else
+      if [ -f "/etc/nginx/conf.d/${_DISABLE_SITE}.disabled" ]; then
+        printf " ✔  Site is already disabled: %s\n" "${_DISABLE_SITE}"
+      else
+        _error "there isn't any configuration for this domain -- '%s'\n" "${_DISABLE_SITE}"
+      fi
+    fi
+  fi
+}
+
+# SSL certificate - Helper function for cmd_nginx()...
+#
+_ssl_certificate() {
+
+  # Generating DH parameters
+  if [ ! -f "/etc/letsencrypt/ssl-dhparams.pem" ]; then
+    sudo mkdir -p /etc/letsencrypt
+    (sudo openssl dhparam -out /etc/letsencrypt/ssl-dhparams.pem 4096 > /dev/null 2>&1) &
+    _spinner $! "Generating DH parameters. Only need to be generated once if there is not exists!\nThis is going to take a few (5-10) minutes."
+  fi
+
+  # Self-signed certificate
+  if [ -d "/home/vagrant" ]; then
+    if [ ! -f "/etc/letsencrypt/live/${_DOMAIN}/fullchain.pem" ]; then
+      sudo cp -rf /etc/ssl/openssl.cnf /tmp/openssl.${_DOMAIN}.cnf
+      sudo sed -i "1i SAN=\"email:info@${_DOMAIN}\"" /tmp/openssl.${_DOMAIN}.cnf
+      # Create a certificate for default host
+      #
+      # Example Usage:
+      #   --block VPS --ssl     Default host available at https://192.168.33.10
+      #                         after you imported the VPS-fullchain crt. file(s) to the Chrome web browser
+      #
+      if [[ "${_DOMAIN}" == "${_THIS_HOST}" ]]; then
+        sudo sed -i "s/^# Extensions for a typical CA/subjectAltName=IP:${_IP}/g" /tmp/openssl.${_DOMAIN}.cnf
+      else
+        sudo sed -i "s/^# Extensions for a typical CA/subjectAltName=DNS:${_DOMAIN}, DNS:www.${_DOMAIN}, DNS:*.${_DOMAIN}/g" /tmp/openssl.${_DOMAIN}.cnf
+      fi
+      sudo mkdir -p /etc/letsencrypt/live/${_DOMAIN}
+      sudo openssl req \
+        -x509 -new -sha256 -days 365 -nodes -newkey rsa:2048 \
+        -subj "/C=US/ST=New York/L=New York/O=123 SSL - Local Tester/OU=IT/CN=${_DOMAIN}" \
+        -out /etc/letsencrypt/live/${_DOMAIN}/fullchain.pem \
+        -keyout /etc/letsencrypt/live/${_DOMAIN}/privkey.pem \
+        -config /tmp/openssl.${_DOMAIN}.cnf > /dev/null 2>&1 || _error "creating self-signed certificate -- '${_DOMAIN}'"
+    fi
+
+    # Import to web browsers (vagrant-triggers or manual import)
+    cat "/etc/letsencrypt/live/${_DOMAIN}/fullchain.pem" | sudo tee /var/www/_letsencrypt/${_DOMAIN}-local-fullchain.crt > /dev/null
+
+    #  Including ssl stapling snippet --> Ssl stapling not supported on localhost
+    # _SSL_STAPLING="include /etc/nginx/snippets/ssl-stapling.conf;"
+
+    # Print message(s)
+    if [[ -n ${_SUB:-} ]]; then
+      _HOST_CONTENT="${_IP} ${_DOMAIN} www.${_DOMAIN} ${_SUB}${_DOMAIN}"
+    else
+      _HOST_CONTENT="${_IP} ${_DOMAIN} www.${_DOMAIN}"
+    fi
+    printf "\nDon't forget:\n"
+    printf "  - add this entry to your \`/etc/hosts\` file (on host):\n    $(tput setaf 3)%s$(tput sgr0)\n" "${_HOST_CONTENT}"
+
+    if "${_SSL:-false}"; then
+      printf "  - import the \`/var/www/_letsencrypt/%s-local-fullchain.crt\` file\n    to the Chrome web browser\n" "${_DOMAIN}"
+    fi
+
+  else
+
+    # Let's Encrypt certificate
+    if ! hash certbot 2>/dev/null; then
+      sudo apt -y install software-properties-common
+      sudo add-apt-repository ppa:certbot/certbot -y
+      sudo apt update && sudo apt -y install certbot python-certbot-nginx
+    fi
+    if [ ! -d "/var/www/_letsencrypt/.well-known/acme-challenge" ]; then
+      sudo mkdir -p /var/www/_letsencrypt/.well-known/acme-challenge
+    fi
+
+    # Run certbot (Test: certbot --dry-run)
+    if ! sudo certbot certificates | grep --quiet www.${_DOMAIN}; then
+      sudo certbot certonly --webroot --agree-tos --no-eff-email --email ${_CERT_EMAIL} -w /var/www/_letsencrypt -d ${_DOMAIN} -d www.${_DOMAIN} || _error "creating Let’s Encrypt certificate -- '${_DOMAIN}'"
+    fi
+
+    # Expand certbot (for example new sub_DOMAIN) - Let’s Encrypt doesn’t offer wildcard (at the current time [2018-07-26])
+    if ${_SUB:-}; then
+      if ! certbot certificates | grep --quiet ${_SUB}${_DOMAIN}; then
+        sudo certbot certonly --expand --agree-tos --no-eff-email -w /var/www/_letsencrypt -d ${_DOMAIN} -d www.${_DOMAIN} -d ${_SUB}${_DOMAIN} || _error "creating Let’s Encrypt certificate -- '${_SUB}${_DOMAIN}'"
+      fi
+    fi
+
+    # Including ssl stapling snippet
+    _SSL_STAPLING="include /etc/nginx/snippets/ssl-stapling.conf;"
+
+    # Message
+    printf "Creating Let’s Encrypt certificate for https://%s is done\n" "${_SUB}${_DOMAIN}"
+  fi
+}
 
 # Call the `_main` function after everything has been defined
 #
