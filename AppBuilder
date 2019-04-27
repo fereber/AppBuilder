@@ -567,6 +567,46 @@ _system_cleanup() {
   fi
 }
 
+# Configure System
+#
+_system_settings() {
+
+  # UFW enable
+  sudo ufw default deny incoming
+  sudo ufw default allow outgoing
+  sudo ufw allow ssh comment 'Connection to ssh' && printf "  ⇢  Rule: Connection to ssh\n"
+  if [[ $(sudo ufw status 2>/dev/null | grep Status: | cut -d ' ' -f 2) != "active" ]]; then
+    sudo ufw --force enable
+  fi
+  sudo ufw reload
+
+  # Hidde things...
+  [[ $(cat ~/.hidden 2> /dev/null | grep -q "snap"; echo $?) != 0 ]] && echo "snap" >> ~/.hidden
+
+  # Gsettings
+  gsettings set org.gnome.desktop.interface clock-format 24h
+  gsettings set org.gnome.Terminal.Legacy.Settings theme-variant 'dark'
+  # gsettings set org.gnome.shell enabled-extensions "['apps-menu@gnome-shell-extensions.gcampax.github.com', 'ubuntu-dock@ubuntu.com', 'ubuntu-appindicators@ubuntu.com', 'alternate-tab@gnome-shell-extensions.gcampax.github.com', 'auto-move-windows@gnome-shell-extensions.gcampax.github.com', 'launch-new-instance@gnome-shell-extensions.gcampax.github.com', 'places-menu@gnome-shell-extensions.gcampax.github.com', 'drive-menu@gnome-shell-extensions.gcampax.github.com', 'screenshot-window-sizer@gnome-shell-extensions.gcampax.github.com']"
+  gsettings set org.gnome.shell.extensions.dash-to-dock show-apps-at-top true
+  gsettings set org.gnome.shell.extensions.dash-to-dock dock-position 'LEFT'
+  gsettings set org.gnome.shell.extensions.dash-to-dock extend-height true
+  gsettings set org.gnome.shell.extensions.dash-to-dock dock-fixed true
+  gsettings set org.gnome.shell.extensions.dash-to-dock click-action 'minimize'
+  gsettings set org.gnome.shell.extensions.dash-to-dock custom-theme-running-dots-color '#dddddd'
+  gsettings set org.gnome.nautilus.preferences default-folder-viewer 'list-view'
+  gsettings set org.gnome.desktop.interface clock-show-date true
+  gsettings set org.gnome.desktop.interface gtk-theme 'Adwaita'
+
+  # Disabling crash dialogs
+  if [[ $(cat '/etc/default/apport' | grep -q 'enabled=0'; echo $?) != 0 ]]; then
+    sudo sed -i "s/enabled=1/enabled=0/g" /etc/default/apport
+  fi
+
+  # Return to menu
+  # whiptail --title "Success" --msgbox "The desktop has been configured." 7 40
+  # cmd_menu
+}
+
 # Call the `_main` function after everything has been defined
 #
 _main "$@"
