@@ -930,7 +930,7 @@ _install_virtualbox() {
     if [ ! -f "/etc/apt/sources.list.d/virtualbox.list" ]; then
       _UBUNTU_CODENAME="$(cat /etc/*-release 2>/dev/null | grep UBUNTU_CODENAME | cut -d= -f2)"
       sudo bash -c "cat > /etc/apt/sources.list.d/virtualbox.list" <<VBOXLIST
-    deb [arch=amd64] https://download.virtualbox.org/virtualbox/debian ${_UBUNTU_CODENAME} contrib
+    deb [arch=amd64] http://download.virtualbox.org/virtualbox/debian ${_UBUNTU_CODENAME} contrib
 VBOXLIST
       wget -q https://www.virtualbox.org/download/oracle_vbox_2016.asc -O- | sudo apt-key add -
       wget -q https://www.virtualbox.org/download/oracle_vbox.asc -O- | sudo apt-key add -
