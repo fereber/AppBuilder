@@ -228,9 +228,110 @@ _main() {
     # If the command is defined, run its function...
     cmd_"${_CMD}" "${@:2}"
   else # If the command is not defined, run this...
-    echo -n
+
+    # Options parser
+    _OPTS=$(getopt --options h,u,c,i,e,s,v --long help,debug,update,clean,info,error,setting,version --name "$(basename "${0}")" -- "${@}")
+    if [ $? != 0 ] ; then _error "invalid option(s)" ; fi
+    eval set -- "${_OPTS}"
+
+    while true ; do
+      case "${1}" in
+        -h|--help)     cmd_help ${_CMD} ; shift ;;
+        --debug)   set -x ; _DEBUG=true ; shift ;;
+        -u|--update)  _system_update    ; shift ;;
+        -c|--clean)   _system_cleanup   ; shift ;;
+        -i|--info)    _system_info      ; shift ;;
+        -e|--error)   _system_error     ; shift ;;
+        -s|--setting) _system_settings  ; shift ;;
+        -v|--version)
+          printf "%s\n" "${_VERSION}"
+          shift ;;
+        --) shift ; break ;;
+        *) _error "internal option error '${1}'"
+      esac
+    done
   fi
 }
+
+
+# COMMAND: Help
+#
+# Usage (optional):
+#   ```
+#   _HELP[command]=$(cat << HELPSOMETHING
+#     Usage: ...
+#   HELPSOMETHING
+#   )
+#
+#   cmd_command() {
+#     echo -n
+#   }
+#   ```
+# Declare command in array without `cmd_` prefix and use in name of function with `cmd_` prefix
+#
+declare -A _HELP[help]=$(cat << HELPCMD
+The menu command displays the help information for '$(basename "${0}")' or
+a specified command.
+
+Usage:
+  $(basename "${0}") -h | --help
+  $(basename "${0}") help <command>
+
+HELPCMD
+)
+
+cmd_help() {
+  if ( [[ $# -gt 0 ]] && [[ ! "${1}" =~ ^- ]] ); then
+    # Help to specific command
+    if _contains "${1}" "${_CMD_ALLOWED[*]}"; then
+      if _contains "${1}" "${!_HELP[*]}"; then
+        printf "%b\n\n" "${_HELP[${1}]}"
+      else
+        printf "No additional information for '%s'\n" "${1}"
+      fi
+    else
+      printf "Sorry, '%s' is not an allowed command!\n\nAllowed command(s):\n" "${1}"
+      printf " %s\n" "${_CMD_ALLOWED[@]}"
+    fi
+  else
+    cat << HELPDESKTOP
+The $(basename "$0") is a post install script to help building and setting your system.
+
+  Usage:
+    Run '$(basename "${0}")' without options and arguments in interactive mode
+    $(basename "${0}") [commands] [options] [<arguments>...]
+
+  Options:
+    -u, --update        Update system
+    -c, --clean         Cleanup system
+    -s, --setting       Configure system
+    -i, --info          Display system information
+    -e, --error         Display error information (\`dmesg\`)
+    -v, --version       Print script version number
+    -h, --help          Display this help
+        --debug         Run debug mode
+
+  Commands:
+    $(printf " %s" "${_CMD_ALLOWED[@]}")
+
+For more information about a command, run '$(basename "${0}") help <command>'
+HELPDESKTOP
+  fi
+  exit
+}
+
+# COMMAND: Whiptail Main Menu
+#
+# Return:
+#   Whiptail menu dialog box
+#
+_HELP[menu]=$(cat << HELPMENU
+The menu command displays an interactive menu.
+
+  Usage: $(basename "${0}") | $(basename "${0}") menu
+HELPMENU
+)
+
 
 # Call the `_main` function after everything has been defined
 #
