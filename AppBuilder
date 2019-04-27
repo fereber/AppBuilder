@@ -649,6 +649,255 @@ DESKTOPFILE
   whiptail --title "Desktop Entry: ${1}" --textbox $HOME/.local/share/applications/${1}.desktop 16 60
 }
 
+
+# VirtualBox - Helper function for cmd_install()...
+#
+_install_virtualbox() {
+  if hash virtualbox 2>/dev/null; then
+    _VER_CUR_VBOX="$(vboxmanage -v | cut -d 'r' -f1)"
+    _VER_LAT_VBOX="$(curl -s https://download.virtualbox.org/virtualbox/LATEST.TXT)"
+    _VER_LAT_VBOX_REPO="$(dpkg-query -W --showformat='${Version}' virtualbox* | cut -d- -f1)"
+    if _check_version ${_VER_LAT_VBOX_REPO} ${_VER_CUR_VBOX}; then
+      printf "A new version of the VirtualBox (%s) is available!\n" "${_VER_LAT_VBOX}"
+      read -p "Do you want me to update? [y/n] " REPLY
+    else
+      printf "VirtualBox (%s) is installed and up-to-date.\n" "${_VER_CUR_VBOX}"
+      if _check_version ${_VER_LAT_VBOX} ${_VER_LAT_VBOX_REPO}; then
+        printf "$(tput setaf 3)...but a newer (%s) deb package is already available.$(tput sgr0)\n" "${_VER_LAT_VBOX}"
+      fi
+    fi
+  else
+    _REPLY=y
+  fi
+  # Install VirtualBox
+  if [[ "${REPLY:-}" =~ ^[Yy]$ ]]; then
+    if [ ! -f "/etc/apt/sources.list.d/virtualbox.list" ]; then
+      _UBUNTU_CODENAME="$(cat /etc/*-release 2>/dev/null | grep UBUNTU_CODENAME | cut -d= -f2)"
+      sudo bash -c "cat > /etc/apt/sources.list.d/virtualbox.list" <<VBOXLIST
+    deb [arch=amd64] https://download.virtualbox.org/virtualbox/debian ${_UBUNTU_CODENAME} contrib
+VBOXLIST
+      wget -q https://www.virtualbox.org/download/oracle_vbox_2016.asc -O- | sudo apt-key add -
+      wget -q https://www.virtualbox.org/download/oracle_vbox.asc -O- | sudo apt-key add -
+      sudo apt-get update
+    fi
+    sudo apt -y install virtualbox-6.0
+  fi
+  # VirtualBox Extension Pack (syncing with current version of VirtualBox)
+  _VER_USED_VBOXREV="$(vboxmanage list extpacks | tr -s ' ' | grep Revision | awk '{ print $2 }')"
+  _VER_CUR_VBOXREV="$(vboxmanage -v | cut -d 'r' -f2)"
+  if [ "${_VER_USED_VBOXREV}" != "${_VER_CUR_VBOXREV}" ]; then
+    _VBOB_LICENSE_KEY="56be48f923303c8cababb0bb4c478284b688ed23f16d775d729b89a2e8e5f9eb"
+    if [ ! -f "/tmp/Oracle_VM_VirtualBox_Extension_Pack-${_VER_CUR_VBOX}.vbox-extpack" ]; then
+      wget https://download.virtualbox.org/virtualbox/${_VER_CUR_VBOX}/Oracle_VM_VirtualBox_Extension_Pack-${_VER_CUR_VBOX}.vbox-extpack -O /tmp/Oracle_VM_VirtualBox_Extension_Pack-${_VER_CUR_VBOX}.vbox-extpack
+    fi
+    sudo VBoxManage extpack install /tmp/Oracle_VM_VirtualBox_Extension_Pack-${_VER_CUR_VBOX}.vbox-extpack --replace --accept-license=${_VBOB_LICENSE_KEY}
+    sudo VBoxManage extpack cleanup
+    printf "VirtualBox Extension Pack (...r%s) has been installed and updated!\n" "${_VER_CUR_VBOXREV}"
+  fi
+}
+
+# Vagrant - Helper function for cmd_install()...
+#
+_install_vagrant() {
+  _VER_LAT_VAGRANT=$(vagrant version | grep Latest | cut -d' ' -f3)
+  if hash vagrant 2>/dev/null; then
+    _VER_CUR_VAGRANT=$(vagrant version | grep Installed | cut -d' ' -f3)
+    if _check_version ${_VER_LAT_VAGRANT} ${_VER_CUR_VAGRANT}; then
+      printf "A new version of the Vagrant (%s) is available!\n" "${_VER_LAT_VAGRANT}"
+      read -p "Do you want me to update? [y/n] " REPLY
+      _INSTALL=true
+    else
+      printf "Vagrant (%s) is installed and up-to-date.\n" "${_VER_CUR_VAGRANT}"
+    fi
+  else
+    _INSTALL=true
+  fi
+  # Install Vagrant
+  if ${_INSTALL:-false}; then
+    if [ ! -f "/tmp/vagrant.deb" ]; then
+      wget https://releases.hashicorp.com/vagrant/${_VER_LAT_VAGRANT}/vagrant_${_VER_LAT_VAGRANT}_x86_64.deb -O /tmp/vagrant.deb
+    fi
+    sudo dpkg -i /tmp/vagrant.deb
+    sudo apt install -fy
+  fi
+}
+
+# Anki - Helper function for cmd_install()...
+#
+_install_anki() {
+  if [[ $(_check_package_exists "anki") == 0 ]]; then
+    _VER_ANKI="2.1.11"
+    wget https://apps.ankiweb.net/downloads/current/anki-${_VER_ANKI}-linux-amd64.tar.bz2 -O /tmp/anki.tar.bz2
+    tar -xj /tmp/anki.tar.bz2 -C /tmp
+    cd /tmp/${_VER_ANKI}
+    sudo make install
+    cd ..
+    # Change default `$HOME/.local/share/Anki2/` folder to custom directory
+    sudo sed -i 's|^Exec=.*|Exec=sh -c "anki %f -b $HOME/Anki"|g' /usr/local/share/applications/anki.desktop
+  fi
+}
+
+# Settings after installation
+#
+_setting_app() {
+  if _contains "mysql" "${_APP_SETTING[@]}"; then
+    echo "Run mysql setting..."
+  fi
+  if _contains "atom" "${_APP_SETTING[@]}"; then
+    if [ -! -d "${HOME}/.atom/packages/atom-beautify/" ]; then
+      pip3 install beautysh
+      apm install atom-beautify
+    fi
+  fi
+}
+
+# Installing software applications with different package formats and methods
+#
+# Usage:
+#   cmd_install --app [packagename] --flat [LOCATION/REMOTE] --snap --pack
+#
+# Return:
+#   Installed package with the given method(s).
+#
+_HELP[install]=$(cat << HELPINTSALL
+The \`install\` command installs a package on the system.
+Use --app to set the package name when installing.
+
+  Usage:
+    $(basename "${0}") install [options] [<arguments]
+
+  Options:
+    -a, --app          Name of package
+    -p, --pack         Install software from main repository (apt-get)
+    -r, --repo         Add repository to sources list
+    -k, --key          Download and add key to package installation
+    -d, --deb          Download the package as .deb and install using dpkg
+    -s, --snap         Install software using Snap package management
+    -f, --flat         Install software using Flatpak package management
+        --ppa          Install packages from PPAs
+        --appimg       Download AppImage
+        --set          Settings after installation
+        --fun          Install package with custom function
+    -h, --help         Display this help
+        --debug        Run debug mode
+HELPINTSALL
+)
+
+cmd_install() {
+
+  _PACK="" # (required) --app option argument
+  _APP_SETTING=() # Settings into array variable
+
+  # Options parser
+  _OPTS_INSTALL=$(getopt --options ha:pr:k:d:s::f: --long help,app:,pack,repo:,key:,deb:,snap::,flat:,appimg:,ppa:,set:,fun:,classic --name "$(basename "${0}") ${_CMD}" -- "${@}")
+  if [ $? != 0 ] ; then _error "invalid option(s)" ; fi
+  eval set -- "${_OPTS_INSTALL}"
+
+  while true; do
+    case "${1}" in
+      -h|--help) cmd_help ${_CMD}; shift ;;
+      --debug) set -x ; _DEBUG=true ; shift ;;
+      -a|--app) _PACK=${2}
+        shift 2 ;;
+      -p|--pack)
+        sudo apt install -y ${_PACK}
+        if [[ "${?}" -ne 0 ]]; then
+          _SCRIPT_MESSAGES+=("There is something wrong with the installation of \`${_PACK}\`.")
+        fi
+        shift ;;
+      --d|-deb) _DEB_ARGS=${2}
+        if [[ $(_check_package_exists "${_PACK}") != 0 ]]; then
+          wget ${_DEB_ARGS} -O /tmp/${_PACK}.deb
+          if [[ "${?}" -ne 0 ]]; then
+            _SCRIPT_MESSAGES+=("There is something wrong with the downloading of \`${_DEB_ARGS}\`.")
+          fi
+          sudo dpkg -i /tmp/${_PACK}.deb
+          sudo apt install -fy
+        fi
+        shift 2 ;;
+      -r|--repo) _REPO_ARGS=${2}
+        if [[ ! -f "/etc/apt/sources.list.d/${_PACK}.list" ]]; then
+          echo "${_REPO_ARGS}" | sudo tee /etc/apt/sources.list.d/${_PACK}.list
+        fi
+        shift 2 ;;
+      -k|--key) _KEY_ARGS=${2}
+        wget -q "${_KEY_ARGS}" -O- | sudo apt-key add -
+        sudo apt update -qq
+        cmd_install --pack ${_PACK}
+        shift 2 ;;
+      -s|--snap) _SNAP_ARGS=${2}
+        if [[ $(_check_package_exists "snapd") != 0 ]]; then
+          sudo apt install -y snapd
+        fi
+        snap install ${_PACK} ${_SNAP_ARGS}
+        if [[ "${?}" -ne 0 ]]; then
+          _SCRIPT_MESSAGES+=("There is something wrong with the installation of \`${_PACK}\`.")
+        fi
+        shift 2 ;;
+      --classic)
+        # This option (classic) is only a snap hack, so it can be use as an install argument...
+        shift ;;
+      -f|--flat) _FLAT_ARGS=${2}
+        if [[ $(_check_package_exists "flatpak") != 0 ]]; then
+          sudo apt install -y flatpak gnome-software-plugin-flatpak
+          flatpak remote-add --if-not-exists flathub https://flathub.org/repo/flathub.flatpakrepo
+          _SCRIPT_MESSAGES+=("After first installation of Flatpak is recommend\nrestart your system to complete setup.")
+        fi
+        flatpak install --assumeyes flathub ${_FLAT_ARGS}
+        if [[ "${?}" -ne 0 ]]; then
+          _SCRIPT_MESSAGES+=("There is something wrong with the installation of \`${_PACK}\`.")
+        fi
+        shift 2 ;;
+      --appimg) _APPIMG_ARGS=${2}
+        # AppImag location
+        if [[ ! -d "${HOME}/.local/bin/" ]]; then
+          mkdir -p ${HOME}/.local/bin/
+        fi
+        # Make location executable
+        if [[ ":$PATH:" != *":${HOME}/.local/bin:"* ]]; then
+          if [[ $(cat ~/.bashrc | grep "export PATH" &> /dev/null; echo $?) -eq 0 ]]; then
+            sed -i "s|^export PATH=.*|export PATH=${PATH}:${HOME}/.local/bin|" ~/.bashrc
+          else
+            echo "export PATH=${PATH}:${HOME}/.local/bin" >> ~/.bashrc
+          fi
+          # Current session && Next ones
+          export PATH=${PATH}:${HOME}/.local/bin && source ~/.bashrc && printf "Updated source...\n"
+        fi
+        # Get AppImage
+        if [[ $(_check_package_exists "${_PACK}") != 0 ]]; then
+          wget "${_APPIMG_ARGS}" -O ${HOME}/.local/bin/${_PACK}
+          if [[ "${?}" -ne 0 ]]; then
+            rm ${HOME}/.local/bin/"${1}"
+            _SCRIPT_MESSAGES+=("There is something wrong with the downloading of \`${_DEB_ARGS}\`.")
+          fi
+          chmod a+x ${HOME}/.local/bin/${_PACK}
+        fi
+        # AppImage Launcher
+        if [ ! -f "$HOME/.local/share/applications/${_PACK}.desktop" ]; then
+          _create_desktop_entry "${_PACK}"
+        fi
+        shift 2 ;;
+      --ppa) _PPA_ARGS=${2}
+        shift 2 ;;
+      --fun) _FUN_ARGS=${2}
+        ${_FUN_ARGS}
+        shift 2 ;;
+      --set) _SET_ARGS=${2}
+        _APP_SETTING+=( "${_SET_ARGS}" )
+        shift 2 ;;
+      --) shift ; break ;;
+      *) _error "internal option error '${1}'" ;;
+    esac
+  done
+
+  if [[ "${_OPTS_INSTALL}" == " --" ]]; then
+    cmd_help "${_CMD}"
+  fi
+
+  # Run settings
+  _setting_app
+}
+
 # Call the `_main` function after everything has been defined
 #
 _main "$@"
