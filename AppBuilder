@@ -1548,7 +1548,7 @@ NGINXUFW
       sudo mv /etc/nginx_backup_${_BACKUP_TIME:-} /etc/nginx
       sudo cp /etc/nginx_default/*.default /etc/nginx/
     fi
-    printf "✔ Nginx is downloaded and installed.\n"
+    printf " ✔ Nginx is downloaded and installed.\n"
     # Continue configurations...
     _CONFIG=true
   fi # ...end of Nginx server's downloading, updating or installing
@@ -1986,7 +1986,7 @@ NGINXSERVICE
       sudo systemctl enable nginx.service || _error "install and enable Nginx -- 'sysremctl'"
       sudo systemctl start nginx.service || _error "install and starting Nginx -- 'sysremctl'"
       # sudo ln -sf /lib/systemd/system/nginx.service /etc/systemd/system/multi-user.target.wants/
-      printf "✔  Starting Nginx is OK\n"
+      printf " ✔  Starting Nginx is OK\n"
       [ -d /home/vagrant ] && printf " ⇢  Default server: $(tput setaf 3)http://%s$(tput sgr0)\n" "${_IP}"
     else
       # Check if Nginx will automatically initiate after a reboot:
