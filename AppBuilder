@@ -626,6 +626,29 @@ _system_info() {
   sudo lshw -short -c system -c memory -c processor
 }
 
+# Creating a desktop file - Helper function for cmd_install()...
+#
+# Args:
+#   $1 (required): Package name
+#
+# Return:
+#   Desktop file, that will be located in $HOME/.local/share/applications/ folder.
+#
+_create_desktop_entry() {
+  local _NAME=$(whiptail --inputbox "\nWhat is your package name?" 8 75 "${1}" --title "Create a desktop file: ~/.local/share/applications/${1}" 3>&1 1>&2 2>&3)
+  local _DESCRIPTION=$(whiptail --inputbox "\nAdd a description for the package" 8 75 "${1} - App" --title "Create a desktop file: /.local/share/applications/${1}" 3>&1 1>&2 2>&3)
+  cat > /tmp/${1}.desktop <<DESKTOPFILE
+[Desktop Entry]
+Name=${_NAME}
+Comment=${_DESCRIPTION}
+Exec=${1}
+TryExec=${1}
+Type=Application
+DESKTOPFILE
+  desktop-file-install --dir=$HOME/.local/share/applications /tmp/${1}.desktop
+  whiptail --title "Desktop Entry: ${1}" --textbox $HOME/.local/share/applications/${1}.desktop 16 60
+}
+
 # Call the `_main` function after everything has been defined
 #
 _main "$@"
