@@ -898,6 +898,65 @@ cmd_install() {
   _setting_app
 }
 
+
+# COMMAND: Removing software applications
+#
+_HELP[remove]=$(cat << HELPREMOVE
+The \`remove\` command removes the all format of a package from the system.
+
+  Usage:
+    $(basename "${0}") remove --app <packagename>
+
+  Options:
+    -a, --app <name>    Name of package
+    -h, --help          Display this help
+        --debug         Run debug mode
+HELPREMOVE
+)
+
+cmd_remove() {
+
+  _PACK="" # (required) --app option argument
+
+  # Options parser
+  _OPTS_UINSTALL=$(getopt --options ha: --long help,debug,app: --name "$(basename "${0}") ${_CMD}" -- "${@}")
+  if [ $? != 0 ] ; then _error "invalid option(s)" ; fi
+  eval set -- "${_OPTS_UINSTALL}"
+
+  while true ; do
+    case "${1}" in
+      -h|--help) cmd_help ${_CMD}; shift ;;
+      --debug) set -x ; _DEBUG=true ; shift ;;
+      -a|--app) _PACK=${2} ; shift 2 ;;
+      --) shift ; break ;;
+      *) _error "internal option error '${1}'" ;;
+    esac
+  done
+
+  if [[ -z "${_PACK}" ]]; then
+    _error "missing required option -- 'app'"
+  else
+    if [[ $(_check_package_exists "${_PACK}") == 0 ]]; then
+      if [[ "$(_check_package_exists --print-status "${_PACK}")" == *"pack"* ]]; then
+        sudo apt-get remove -y "${_PACK}"
+      fi
+      if [[ "$(_check_package_exists --print-status "${_PACK}")" == *"snap"* ]]; then
+        sudo snap remove "${_PACK}"
+      fi
+      if [[ "$(_check_package_exists --print-status "${_PACK}")" == *"flat"* ]]; then
+        _FLATPAK_PACK=$(flatpak list --app | grep "${_PACK}" | cut -d/ -f1)
+        sudo flatpak uninstall --assumeyes "${_FLATPAK_PACK}"
+      fi
+      if [[ "$(_check_package_exists --print-status "${_PACK}")" == *"complied"* ]]; then
+        _SCRIPT_MESSAGES+=("☹ Sorry, '${_PACK}' package can remove manually only.")
+      fi
+    fi
+    # Run system cleanup
+    _system_cleanup
+  fi
+}
+
+
 # Call the `_main` function after everything has been defined
 #
 _main "$@"
