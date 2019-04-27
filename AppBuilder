@@ -19,6 +19,11 @@ _APP_ADVANCED+=( gnome-tweak-tool )              ; _APP_INSTALL[gnome-tweak-tool
 _APP_NON_FAVORITE+=( ubuntu-web-launchers )      ; _APP_INSTALL[ubuntu-web-launchers]="--pack"
 _APP_NON_FAVORITE+=( gnome-characters )          ; _APP_INSTALL[gnome-characters]="--snap" # prefer main source to snap
 
+export NEWT_COLORS="root=,black window=,lightgray title=black, button=lightgray,black actbutton=black,lightgray checkbox=black,lightgray actcheckbox=lightgray,black listbox=black,lightgray actlistbox=lightgray,black sellistbox=black,lightgray actsellistbox=lightgray,gray textbox=black,lightgray acttextbox=lightgray,black border= shadow= entry= label= helpline= roottext= emptyscale= fullscale= disentry= compactbutton= "
+
+_dimension() {
+  LINES=""; LINES=$(tput lines); COLUMNS=""; COLUMNS=$(tput cols)
+}
 
 # Check if one element value exists in a list or array
 #
@@ -253,7 +258,6 @@ _main() {
   fi
 }
 
-
 # COMMAND: Help
 #
 # Usage (optional):
@@ -332,6 +336,189 @@ The menu command displays an interactive menu.
 HELPMENU
 )
 
+# COMMAND: Whiptail Main Menu
+#
+# Return:
+#   Whiptail menu dialog box
+#
+_HELP[menu]=$(cat << HELPMENU
+The menu command displays an interactive menu.
+
+  Usage: $(basename "${0}") | $(basename "${0}") menu
+HELPMENU
+)
+
+cmd_menu(){
+  _dimension
+  _MENU_MAIN=$(whiptail --title "Main Menu" --menu "\n   What would you like to do? Choose an option..." --cancel-button "Quit" --notags $LINES $COLUMNS $(( $LINES - 10 )) \
+      "cmd_menu" "System:" \
+      "_system_update" "  Update" \
+      "_system_cleanup" "  Cleaning" \
+      "_system_info" "  Print Info" \
+      "_system_error" "  Print Error" \
+      "cmd_menu" "" \
+      "cmd_menu" "Installing Applications:" \
+      "_menu_sub install _APP_COMMON 'Commonly Used Application' 'Install'" "  Commonly Used ▸" \
+      "_menu_sub install _APP_ADVANCED 'Installing Advanced Application' 'Install'" "  Advanced ▸" \
+      "_menu_sub install _APP_GAME 'Installing Games' 'Install'" "  Games ▸" \
+      "_menu_sub install _APP_CODEC 'Installing Codecs' 'Install'" "  Codecs ▸" \
+      "cmd_menu" "" \
+      "cmd_menu" "Removing Applications:" \
+      "_menu_sub remove _APP_COMMON 'Removing Commonly Used Application' 'Uninstall'" "  Commonly Used ▸" \
+      "_menu_sub remove _APP_ADVANCED 'Removing Advanced Application' 'Uninstall'" "  Advanced ▸" \
+      "_menu_sub remove _APP_GAME 'Removing Games' 'Uninstall'" "  Games ▸" \
+      "_menu_sub remove _APP_CODEC 'Removing Codecs' 'Uninstall'" "  Codecs ▸" \
+      "_menu_sub remove _APP_NON_FAVORITE 'Removing Non-favorite Apps' 'Uninstall'" "  Non-favorite Apps ▸" \
+      "cmd_menu" "" \
+      "cmd_menu" "Settings:" \
+      "_menu_show_desc" "  Show App Info" \
+      "sudo update-alternatives --config java" "  Config Java" \
+      "_system_settings" "  Setting System" \
+    3>&1 1>&2 2>&3)
+  if [ $? = 0 ]; then
+    ${_MENU_MAIN}
+  else
+    echo "Bye!"
+    exit 0
+  fi
+}
+
+# Helps to build a whiptail checklist for applications
+#
+# Args:
+#   $1 (required): install or remove
+#   $2 (required): name of array
+#
+# Return:
+#   Checklist for whiptail submenu into ${_APP_LIST[@]}
+#
+_menu_checking_list() {
+  # Clear the previous list and create a new updated one
+  unset _APP_LIST
+  # Set list array
+  _LIST_ARRAY="$2[@]"
+  # Description for package
+  _APP_DESC=""
+  # Get length of list array for steps in process
+  local _STEP=0; local _LIST_LENGTH=$(echo "${!_LIST_ARRAY}" | wc -w)
+  # Build the list
+  local _PACKAGE=""
+  for _PACKAGE in "${!_LIST_ARRAY}"; do
+    # Print package's description as well
+    if [[ "${_SHOW_DESC}" -eq 1 ]]; then
+      if [[ $(apt-cache show "${_PACKAGE}" &> /dev/null; echo $?) == 0 ]]; then
+        _APP_DESC=" -$(apt-cache show "${_PACKAGE}" | grep "Description-en" | cut -d: -f 2)" || true
+      fi
+    fi
+
+    # Set package install status
+    _install_status="$(_check_package_exists --print-status "${_PACKAGE}")"
+
+    #Set checked status
+    _install_list_check="OFF"
+    _remove_list_check="OFF"
+
+    # Set, if app is present on the 'non-favorite list'
+    if _contains "${_PACKAGE}" "${_APP_NON_FAVORITE[@]}"; then
+      _mark_non_favorite=" ☠  "
+      [[ "${_install_status}" != "✖ ( -- )" ]] && _remove_list_check="ON"
+    else
+      _mark_non_favorite=""
+    fi
+
+    # Create whiptail commands
+    if [[ "${1}" == "install" ]]; then
+      _APP_LIST+=("cmd_install --app ${_PACKAGE} ${_APP_INSTALL[$_PACKAGE]}" "${_install_status} ${_mark_non_favorite}${_PACKAGE}${_APP_DESC}" ${_install_list_check})
+    elif [[ "${1}" == "remove" ]]; then
+      _APP_LIST+=("cmd_remove --app ${_PACKAGE}" "${_install_status} ${_mark_non_favorite}${_PACKAGE}${_APP_DESC}" ${_remove_list_check})
+    else
+      echo "Error line $LINENO: Menu command is wrong!"; exit
+    fi
+
+    # Progress while building the list
+    # if [[ "${_SHOW_DESC}" -eq 1 ]]; then
+    (( _STEP+=$(( 100 / ${_LIST_LENGTH} +1 )) ))
+    echo XXX
+    echo $(( $_STEP ))
+    echo -e "\nUpdating package information: ${_PACKAGE}"
+    echo XXX
+    # fi
+    # done  > >([[ "${_SHOW_DESC}" -eq 1 ]] && whiptail --title "Please wait..." --gauge "\nUpdating package information: " 8 70 0)
+  done > >(whiptail --title "Please wait..." --gauge "\nUpdating package information: " 8 70 0)
+}
+
+# Whiptail: Submenu for actions
+#
+# Usage:
+#   _menu_sub install _APP_COMMON 'Installing Commonly Used Application' 'Install'
+#
+# Args:
+#   $1 (required): install or remove
+#   $2 (required): Name of array
+#   $3 (required): Checklit title
+#   $4 (required): Checklist OK button text
+#
+# Return:
+#   Whiptail checklist, where can you start the command for installing or removing
+#
+_menu_sub() {
+  _dimension
+  # Keep it for the return
+  _preserved_command="${@}"
+  eval set -- "${@}"
+  # Build a list
+  _menu_checking_list "${@}"
+  # Checklist
+  _CHECK_LIST=$(whiptail --title "${3}" --checklist "\n   Choose one or more apps to ${1}...\n\n   ✔ installed (sources)\n   ✖ not installed\n   ☠ non-favorite\n" \
+      --separate-output --cancel-button "Back to Main Menu" --ok-button "${4}" --notags \
+      $LINES $COLUMNS $(( $LINES - 14 )) \
+      "${_APP_LIST[@]}" \
+    3>&1 1>&2 2>&3)
+  if [ ${?} = 0 ]; then
+    i=0
+    while read line; do
+      _SELECTED_APPS[${i}]=${line}
+      i=$(($i+1))
+    done <<< "${_CHECK_LIST}"
+    if [[ -z "${_SELECTED_APPS[@]}" ]]; then
+      whiptail --title "Info" --yes-button "Back" --no-button "Quit" --yesno "Nothing selected, so nothing happened!" 7 45 || exit
+    else
+      for _MENU_SUB in "${_SELECTED_APPS[@]}"; do
+        ${_MENU_SUB}
+      done
+      if [[ -z "${_SCRIPT_MESSAGES[@]}" ]]; then
+        whiptail --title "Success" --yes-button "Back to List" --no-button "Quit" --yesno "The selected application(s) has been ${1}ed." 7 53 || exit
+      else
+        # Print message
+        whiptail --scrolltext --title "Script Messages" --yes-button "OK" --no-button "Quit" --yesno "$(printf "%b\n" "${_SCRIPT_MESSAGES[@]}")" 10 75 || exit
+      fi
+    fi
+    _menu_sub "${_preserved_command}"
+  else
+    cmd_menu
+  fi
+}
+
+# Whiptail: Package's description settings
+#
+# Return:
+#   Whiptail radiolist
+#
+_menu_show_desc() {
+  if [[ "$_SHOW_DESC" == 1 ]]; then
+    _SHOW_DESC_ENABLE="ON"; _SHOW_DESC_DISABLE="OFF"
+  else
+    _SHOW_DESC_ENABLE="OFF"; _SHOW_DESC_DISABLE="ON"
+  fi
+  _SHOW_DESC_OPTIONS=$( whiptail --notags --title "Show Packages' Description" --radiolist "\nDisplay information of applications in selection menus. Enabling slows down script execution!" 10 65 2 \
+      "1" "Enable" $_SHOW_DESC_ENABLE \
+      "0" "Disable (default)" $_SHOW_DESC_DISABLE \
+    3>&1 1>&2 2>&3)
+  if [ ${?} = 0 ]; then
+    _SHOW_DESC=$_SHOW_DESC_OPTIONS
+  fi
+  cmd_menu
+}
 
 # Call the `_main` function after everything has been defined
 #
