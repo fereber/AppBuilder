@@ -607,31 +607,44 @@ HELPMENU
 
 cmd_menu(){
   _dimension
-  _MENU_MAIN=$(whiptail --title "Main Menu" --menu "\n   What would you like to do? Choose an option..." --cancel-button "Quit" --notags $LINES $COLUMNS $(( $LINES - 10 )) \
-      "cmd_menu" "System:" \
-      "_system_update" "  Update" \
-      "_system_cleanup" "  Cleaning" \
-      "_system_info" "  Print Info" \
-      "_system_error" "  Print Error" \
-      "cmd_menu" "" \
-      "cmd_menu" "Installing Applications:" \
-      "_menu_sub install _APP_COMMON 'Commonly Used Application' 'Install'" "  Commonly Used ▸" \
-      "_menu_sub install _APP_ADVANCED 'Installing Advanced Application' 'Install'" "  Advanced ▸" \
-      "_menu_sub install _APP_GAME 'Installing Games' 'Install'" "  Games ▸" \
-      "_menu_sub install _APP_CODEC 'Installing Codecs' 'Install'" "  Codecs ▸" \
-      "cmd_menu" "" \
-      "cmd_menu" "Removing Applications:" \
-      "_menu_sub remove _APP_COMMON 'Removing Commonly Used Application' 'Uninstall'" "  Commonly Used ▸" \
-      "_menu_sub remove _APP_ADVANCED 'Removing Advanced Application' 'Uninstall'" "  Advanced ▸" \
-      "_menu_sub remove _APP_GAME 'Removing Games' 'Uninstall'" "  Games ▸" \
-      "_menu_sub remove _APP_CODEC 'Removing Codecs' 'Uninstall'" "  Codecs ▸" \
-      "_menu_sub remove _APP_NON_FAVORITE 'Removing Non-favorite Apps' 'Uninstall'" "  Non-favorite Apps ▸" \
-      "cmd_menu" "" \
-      "cmd_menu" "Settings:" \
-      "_menu_show_desc" "  Show App Info" \
-      "sudo update-alternatives --config java" "  Config Java" \
-      "_system_settings" "  Setting System" \
-    3>&1 1>&2 2>&3)
+  if _check_desktop; then
+    _MENU_MAIN=$(whiptail --title "Main Menu" --menu "\n   What would you like to do? Choose an option..." --cancel-button "Quit" --notags $LINES $COLUMNS $(( $LINES - 10 )) \
+        "cmd_menu" "System:" \
+        "_system_update" "  Update" \
+        "_system_cleanup" "  Cleaning" \
+        "_system_info" "  Print Info" \
+        "_system_error" "  Print Error" \
+        "cmd_menu" "" \
+        "cmd_menu" "Installing Applications:" \
+        "_menu_sub install _APP_COMMON 'Commonly Used Application' 'Install'" "  Commonly Used ▸" \
+        "_menu_sub install _APP_ADVANCED 'Installing Advanced Application' 'Install'" "  Advanced ▸" \
+        "_menu_sub install _APP_GAME 'Installing Games' 'Install'" "  Games ▸" \
+        "_menu_sub install _APP_CODEC 'Installing Codecs' 'Install'" "  Codecs ▸" \
+        "cmd_menu" "" \
+        "cmd_menu" "Removing Applications:" \
+        "_menu_sub remove _APP_COMMON 'Removing Commonly Used Application' 'Uninstall'" "  Commonly Used ▸" \
+        "_menu_sub remove _APP_ADVANCED 'Removing Advanced Application' 'Uninstall'" "  Advanced ▸" \
+        "_menu_sub remove _APP_GAME 'Removing Games' 'Uninstall'" "  Games ▸" \
+        "_menu_sub remove _APP_CODEC 'Removing Codecs' 'Uninstall'" "  Codecs ▸" \
+        "_menu_sub remove _APP_NON_FAVORITE 'Removing Non-favorite Apps' 'Uninstall'" "  Non-favorite Apps ▸" \
+        "cmd_menu" "" \
+        "cmd_menu" "Settings:" \
+        "_menu_show_desc" "  Show App Info" \
+        "sudo update-alternatives --config java" "  Config Java" \
+        "_system_settings" "  Setting System" \
+      3>&1 1>&2 2>&3)
+  else
+    _MENU_MAIN=$(whiptail --title "Main Menu" --menu "\n   What would you like to do? Choose an option..." --cancel-button "Quit" --notags $LINES $COLUMNS $(( $LINES - 10 )) \
+        "cmd_menu" "System:" \
+        "_system_update" "  Update" \
+        "_system_cleanup" "  Cleaning" \
+        "_system_info" "  Print Info" \
+        "_system_error" "  Print Error" \
+        "cmd_menu" "" \
+        "cmd_menu" "Installing Applications:" \
+        "cmd_nginx" "  Build Nginx" \
+      3>&1 1>&2 2>&3)
+  fi
   if [ $? = 0 ]; then
     ${_MENU_MAIN}
   else
@@ -1356,6 +1369,7 @@ cmd_nginx() {
   done
 
   if ! "${_FORCE:-false}"; then
+    printf "Please wait... "
     _check_desktop && printf "%b\n" "${_CHAS_MESSAGE}" && exit 1
   fi
 
