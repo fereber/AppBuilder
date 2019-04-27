@@ -520,6 +520,53 @@ _menu_show_desc() {
   cmd_menu
 }
 
+# System updating
+#
+_system_update() {
+  # Refresh repository...
+  printf "Please wait... "
+  if hash flatpak 2>/dev/null; then
+    flatpak update
+  fi
+  sudo apt update -qq
+
+  # Upgrading packages if necessary
+  if [[ $(LANG=C apt-get upgrade -s | grep -P '^\d+ upgraded'| cut -d" " -f1) != 0 ]]; then
+    sudo apt upgrade -y
+  fi
+
+  # Install translations if language support is not installed completely
+  if [[ -n "$(check-language-support)" ]]; then
+    sudo apt install -y $(check-language-support)
+  fi
+}
+
+# System cleaning
+#
+_system_cleanup() {
+  # Remove leftover config files
+  if [[ -z "$(COLUMNS= dpkg -l | grep '^rc' | tr -s ' ' | cut -d ' ' -f 2)" ]]; then
+    printf "There aren't leftover config files.\n"
+  else
+    printf "Remove leftover config files:\n"
+    sudo dpkg --purge $(COLUMNS= dpkg -l | grep '^rc' | tr -s ' ' | cut -d ' ' -f 2)
+  fi
+
+  # Flatpak unused applications
+  if hash flatpak 2>/dev/null; then
+    printf "Unused Flatpak package(s)... "
+    flatpak uninstall -y --unused
+  fi
+
+  # Clean packages cache
+  sudo apt clean
+
+  # Remove orphaned packages
+  if [[ $(LANG=C apt-get autoremove -s | grep -P '^\d+ upgraded'| cut -d" " -f6) -ne 0 ]]; then
+    sudo apt autoremove -y -qq
+  fi
+}
+
 # Call the `_main` function after everything has been defined
 #
 _main "$@"
