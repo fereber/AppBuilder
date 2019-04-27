@@ -1,31 +1,201 @@
 #!/bin/bash
 
+# Build your desktop and server apps faster for Linux
 _VERSION='1.0.0'
 
+# Lists of application groups, what you want to manage as an application group
 _APP_COMMON=()
 _APP_ADVANCED=()
 _APP_GAME=()
 _APP_CODEC=()
 _APP_NON_FAVORITE=()
 
+# Building methods (package format) for interactive selection list
+#
+# Usage example:
+#   _APP_INSTALL[packagename]="--pack" # default package format, install apt-get
+#   _APP_INSTALL[packagename]="--pack --flat com.app.APP --snap" # install from several package format as well, default + flat + snap
+#
+# On the interactive selection list:
+#   If you install the application in several ways (source), than you will see this on application list:
+#     '✔ (pack+snap) gnome-calculator'
+#          otherwise this (if installed with one method): '✔ (snap) gnome-calculator' or '✔ (pack) gnome-calculator'
+#     '✔ (pack+snap+flat) gimp'
+#
+# Return:
+#   Groups of Array, what we will send to cmd_install function.
+#
 declare -A _APP_INSTALL
 
+# Commonly Used App List
 _APP_COMMON+=( nautilus )                        ; _APP_INSTALL[nautilus]="--pack"
 _APP_COMMON+=( gedit )                           ; _APP_INSTALL[gedit]="--pack"
+_APP_COMMON+=( google-chrome )                   ; _APP_INSTALL[google-chrome]="--deb https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb"
+_APP_COMMON+=( chromium-browser )                ; _APP_INSTALL[chromium-browser]="--pack"
+_APP_COMMON+=( brave )                           ; _APP_INSTALL[brave]="--snap"
+_APP_COMMON+=( epiphany-browser )                ; _APP_INSTALL[epiphany-browser]="--pack"
+_APP_COMMON+=( firefox )                         ; _APP_INSTALL[firefox]="--pack"
+_APP_COMMON+=( thunderbird )                     ; _APP_INSTALL[thunderbird]="--pack"
+_APP_COMMON+=( skype )                           ; _APP_INSTALL[skype]="--flat com.skype.Client"
+_APP_COMMON+=( default-jre )                     ; _APP_INSTALL[default-jre]="--pack"
+_APP_COMMON+=( default-jdk )                     ; _APP_INSTALL[default-jdk]="--pack"
+_APP_COMMON+=( openjdk-8-jdk )                   ; _APP_INSTALL[openjdk-8-jdk]="--pack"
+_APP_COMMON+=( libreoffice )                     ; _APP_INSTALL[libreoffice]="--pack"
+_APP_COMMON+=( bijiben )                         ; _APP_INSTALL[bijiben]="--pack"
+_APP_COMMON+=( simple-scan )                     ; _APP_INSTALL[simple-scan]="--pack"
+_APP_COMMON+=( shotwell )                        ; _APP_INSTALL[shotwell]="--pack"
+_APP_COMMON+=( rhythmbox )                       ; _APP_INSTALL[rhythmbox]="--pack"
+_APP_COMMON+=( gimp )                            ; _APP_INSTALL[gimp]="--flat org.gimp.GIMP --pack"
+_APP_COMMON+=( gnome-session )                   ; _APP_INSTALL[gnome-session]="--pack"
+_APP_COMMON+=( gnome-shell-extensions )          ; _APP_INSTALL[gnome-shell-extensions]="--pack"
+_APP_COMMON+=( chrome-gnome-shell )              ; _APP_INSTALL[chrome-gnome-shell]="--pack"
+_APP_COMMON+=( gnome-weather )                   ; _APP_INSTALL[gnome-weather]="--pack"
+_APP_COMMON+=( gnome-calculator )                ; _APP_INSTALL[gnome-calculator]="--pack" # default: snap; add to an app list (with a different install method) and install if you want
+_APP_COMMON+=( gnome-calendar )                  ; _APP_INSTALL[gnome-calendar]="--pack"
+_APP_COMMON+=( gnome-clocks )                    ; _APP_INSTALL[gnome-clocks]="--pack"
+_APP_COMMON+=( gnome-documents )                 ; _APP_INSTALL[gnome-documents]="--pack"
+_APP_COMMON+=( gnome-todo )                      ; _APP_INSTALL[gnome-todo]="--pack"
+_APP_COMMON+=( gnome-maps )                      ; _APP_INSTALL[gnome-maps]="--pack"
+_APP_COMMON+=( gnome-music )                     ; _APP_INSTALL[gnome-music]="--pack"
+_APP_COMMON+=( gnome-photos )                    ; _APP_INSTALL[gnome-photos]="--pack"
+_APP_COMMON+=( gnome-screenshot )                ; _APP_INSTALL[gnome-screenshot]="--pack"
+_APP_COMMON+=( gnome-software )                  ; _APP_INSTALL[gnome-software]="--pack"
+_APP_COMMON+=( gnome-software-plugin-snap )      ; _APP_INSTALL[gnome-software-plugin-snap]="--pack"
+_APP_COMMON+=( gnome-sushi )                     ; _APP_INSTALL[gnome-sushi]="--pack" # To activate the preview (images, videos or text files), left-click the file and hit space
+_APP_COMMON+=( ubuntu-web-launchers )            ; _APP_INSTALL[ubuntu-web-launchers]="--pack"
 
+# Advanced App List
 _APP_ADVANCED+=( dconf-editor )                  ; _APP_INSTALL[dconf-editor]="--pack"
 _APP_ADVANCED+=( gnome-tweak-tool )              ; _APP_INSTALL[gnome-tweak-tool]="--pack"
+_APP_ADVANCED+=( gparted )                       ; _APP_INSTALL[gparted]="--pack"
+_APP_ADVANCED+=( remmina )                       ; _APP_INSTALL[remmina]="--pack"
+_APP_ADVANCED+=( dropbox )                       ; _APP_INSTALL[dropbox]="--deb https://linux.dropboxstatic.com/packages/ubuntu/dropbox_2.10.0_amd64.deb"
+_APP_ADVANCED+=( nautilus-dropbox )              ; _APP_INSTALL[nautilus-dropbox]="--pack"
+_APP_ADVANCED+=( exiftool )                      ; _APP_INSTALL[exiftool]="--pack" # libimage-exiftool-perl
+_APP_ADVANCED+=( ffmpeg )                        ; _APP_INSTALL[ffmpeg]="--pack"
+_APP_ADVANCED+=( vlc )                           ; _APP_INSTALL[vlc]="--flat org.videolan.VLC"
+_APP_ADVANCED+=( picard )                        ; _APP_INSTALL[picard]="--flat org.musicbrainz.Picard"
+_APP_ADVANCED+=( audacity )                      ; _APP_INSTALL[audacity]="--flat org.audacityteam.Audacity"
+_APP_ADVANCED+=( spotify )                       ; _APP_INSTALL[spotify]="--flat com.spotify.Client"
+_APP_ADVANCED+=( inkscape )                      ; _APP_INSTALL[inkscape]="--pack"
+# _APP_ADVANCED+=( anki )                          ; _APP_INSTALL[anki]="--fun _install_anki"
+_APP_ADVANCED+=( anki )                          ; _APP_INSTALL[anki]="--flat net.ankiweb.Anki"
+_APP_ADVANCED+=( enpass )                        ; _APP_INSTALL[enpass]="--repo 'deb http://repo.sinew.in/ stable main' --key https://apt.enpass.io/keys/enpass-linux.key"
+_APP_ADVANCED+=( digikam )                       ; _APP_INSTALL[digikam]="--appimg https://download.kde.org/stable/digikam/6.0.0/digikam-6.0.0-x86-64.appimage"
+_APP_ADVANCED+=( mysql-server )                  ; _APP_INSTALL[mysql-server]="--set mysql --pack"
+_APP_ADVANCED+=( git )                           ; _APP_INSTALL[git]="--pack"
+_APP_ADVANCED+=( python3-pip )                   ; _APP_INSTALL[python3-pip]="--pack"
+# _APP_ADVANCED+=( virtualbox )                    ; _APP_INSTALL[virtualbox]="--deb https://download.virtualbox.org/virtualbox/6.0.4/virtualbox-6.0_6.0.4-128413~Ubuntu~bionic_amd64.deb"
+# _APP_ADVANCED+=( vagrant )                       ; _APP_INSTALL[vagrant]="--deb https://releases.hashicorp.com/vagrant/2.2.4/vagrant_2.2.4_x86_64.deb"
+_APP_ADVANCED+=( virtualbox )                    ; _APP_INSTALL[virtualbox]="--fun _install_virtualbox"
+_APP_ADVANCED+=( vagrant )                       ; _APP_INSTALL[vagrant]="--fun _install_vagrant"
+_APP_ADVANCED+=( poedit )                        ; _APP_INSTALL[poedit]="--pack"
+_APP_ADVANCED+=( atom )                          ; _APP_INSTALL[atom]="--set atom --snap --classic"
+_APP_ADVANCED+=( sublimetext )                   ; _APP_INSTALL[sublimetext]="--flat com.sublimetext.three"
+_APP_ADVANCED+=( gnome-builder )                 ; _APP_INSTALL[gnome-builder]="--pack" # + sysprof
+_APP_ADVANCED+=( filezilla )                     ; _APP_INSTALL[filezilla]="--pack"
+_APP_ADVANCED+=( librecad )                      ; _APP_INSTALL[librecad]="--pack"
+_APP_ADVANCED+=( gnome-terminal )                ; _APP_INSTALL[gnome-terminal]="--pack"
+_APP_ADVANCED+=( gnome-disk-utility )            ; _APP_INSTALL[gnome-disk-utility]="--pack"
+_APP_ADVANCED+=( gnome-usage )                   ; _APP_INSTALL[gnome-usage]="--pack"
+_APP_ADVANCED+=( gnome-system-monitor )          ; _APP_INSTALL[gnome-system-monitor]="--pack" # default snap
+_APP_ADVANCED+=( gnome-characters )              ; _APP_INSTALL[gnome-characters]="--pack" # default snap
+_APP_ADVANCED+=( gnome-logs )                    ; _APP_INSTALL[gnome-logs]="--pack" # default snap
+_APP_ADVANCED+=( transmission )                  ; _APP_INSTALL[transmission]="--pack"
+_APP_ADVANCED+=( flatpak )                       ; _APP_INSTALL[flatpak]="--pack"
+_APP_ADVANCED+=( gnome-software-plugin-flatpak ) ; _APP_INSTALL[gnome-software-plugin-flatpak]="--pack" # + flatpak if it is not exists
 
+# Games App List
+_APP_GAME+=( aisleriot )                         ; _APP_INSTALL[aisleriot]="--pack"
+_APP_GAME+=( gnome-mahjongg )                    ; _APP_INSTALL[gnome-mahjongg]="--pack"
+_APP_GAME+=( gnome-sudoku )                      ; _APP_INSTALL[gnome-sudoku]="--pack"
+_APP_GAME+=( gnome-mines )                       ; _APP_INSTALL[gnome-mines]="--pack"
+
+# Codecs App List
+_APP_CODEC+=( ubuntu-restricted-extras )         ; _APP_INSTALL[ubuntu-restricted-extras]="--pack"
+_APP_CODEC+=( libavcodec-extra )                 ; _APP_INSTALL[libavcodec-extra]="--pack"
+_APP_CODEC+=( libdvdnav4 )                       ; _APP_INSTALL[libdvdnav4]="--pack"
+_APP_CODEC+=( libdvdread4 )                      ; _APP_INSTALL[libdvdread4]="--pack"
+_APP_CODEC+=( gstreamer1.0-plugins-bad )         ; _APP_INSTALL[gstreamer1.0-plugins-bad]="--pack"
+_APP_CODEC+=( gstreamer1.0-plugins-ugly )        ; _APP_INSTALL[gstreamer1.0-plugins-ugly]="--pack"
+_APP_CODEC+=( libdvd-pkg )                       ; _APP_INSTALL[libdvd-pkg]="--pack" # fix: sudo dpkg-reconfigure libdvd-pkg
+
+# Non-favorite App List ☠ ☠ ☠
+#
+# If you want to mark a package then add it to your non-favorite list as well.
+#
+# The non-favorite apps will not be automatically removed.
+# If these apps exist on the applications lists, then they will be only unchecking or
+# checking on the - installing or removing - lists, depending on the following.
+#
+#  Default:
+# |-----------------------------------------------|-----------------|----------------|
+# |                App / Package                  | Installing List | Removing List  |
+# |------------------------------------------|----|-----------------|----------------|
+# | if not present on your system            |    |                 |                |
+# |   and present on 'non-favorite list'     | ✖  | unchecked       | unchecked      |
+# |   and not present on 'non-favorite list' |    | unchecked       | unchecked      |
+# |------------------------------------------|----|-----------------|----------------|
+# | if present on you system                 |    |                 |                |
+# |   and present on 'non-favorite list'     | ✔  | unchecked       | checked        |
+# |   and not present on 'non-favorite list' |    | unchecked       | unchecked      |
+# |------------------------------------------|----|-----------------|----------------|
+#
 _APP_NON_FAVORITE+=( ubuntu-web-launchers )      ; _APP_INSTALL[ubuntu-web-launchers]="--pack"
 _APP_NON_FAVORITE+=( gnome-characters )          ; _APP_INSTALL[gnome-characters]="--snap" # prefer main source to snap
+_APP_NON_FAVORITE+=( gnome-logs )                ; _APP_INSTALL[gnome-logs]="--snap" # prefer main source to snap
+_APP_NON_FAVORITE+=( gnome-system-monitor )      ; _APP_INSTALL[gnome-system-monitor]="--snap" # prefer main source to snap
+_APP_NON_FAVORITE+=( gnome-builder )             ; _APP_INSTALL[gnome-builder]="--pack"
+_APP_NON_FAVORITE+=( bijiben )                   ; _APP_INSTALL[bijiben]="--pack"
+_APP_NON_FAVORITE+=( libdvd-pkg )                ; _APP_INSTALL[libdvd-pkg]="--pack"
+_APP_NON_FAVORITE+=( transmission )              ; _APP_INSTALL[transmission]="--pack"
+_APP_NON_FAVORITE+=( vlc )                       ; _APP_INSTALL[vlc]="--pack"
+_APP_NON_FAVORITE+=( epiphany-browser )          ; _APP_INSTALL[epiphany-browser]="--pack"
+_APP_NON_FAVORITE+=( shotwell )                  ; _APP_INSTALL[shotwell]="--pack"
+_APP_NON_FAVORITE+=( rhythmbox )                 ; _APP_INSTALL[rhythmbox]="--pack"
+_APP_NON_FAVORITE+=( ubuntu-web-launchers )      ; _APP_INSTALL[ubuntu-web-launchers]="--pack"
 
+# Print short description of package (default value is disable, as it slow down the script)
+_SHOW_DESC=${_SHOW_DESC:-0}
+
+# Collect message(s) to an array and print in the end
+_SCRIPT_MESSAGES=()
+
+# Whiptail: Changing colours
+#
+# Return:
+#   Dialog box with custom colours
+#
 export NEWT_COLORS="root=,black window=,lightgray title=black, button=lightgray,black actbutton=black,lightgray checkbox=black,lightgray actcheckbox=lightgray,black listbox=black,lightgray actlistbox=lightgray,black sellistbox=black,lightgray actsellistbox=lightgray,gray textbox=black,lightgray acttextbox=lightgray,black border= shadow= entry= label= helpline= roottext= emptyscale= fullscale= disentry= compactbutton= "
 
+# Whiptail: Set right dimensions for your whiptail dialog box (without xterm resizing!)
+#
+# Usage:
+#   You can calculate the best box size by this: `$LINES $COLUMNS $(( $LINES - 8 ))`
+#
+# Variables:
+#   $LINES:  height dimension (LINES) of current terminal window
+#   $COLUMS: width dimension (COLUMNS) of current terminal window
+#
+# Returns:
+#   Dimension of the current terminal window
+#
 _dimension() {
   LINES=""; LINES=$(tput lines); COLUMNS=""; COLUMNS=$(tput cols)
 }
 
 # Check if one element value exists in a list or array
+#
+# Usage:
+#   _contains "$_element" "${_list[*]}"
+#
+# Args:
+#   $1 (required): element
+#   $2 (required): array/list
+#
+# Returns:
+#   0  If the item is included in the list.
+#   1  If not.
 #
 _contains() {
   local _list=(${*:2})
@@ -35,11 +205,45 @@ _contains() {
 
 # Version controll
 #
+# Usage:
+# if _check_version "$version_1" "$version_2"; then
+#        echo "$version_1 is greater than $version_2!"
+# fi
+#
 _check_version() {
   test "$(printf '%s\n' "$@" | sort -V | head -n 1)" != "$1"
 }
 
+# Spinner
+#
+# Usage:
+#  (function or command) &
+#  _spinner $! "Comment here..."
+#
+_spinner(){
+  local pid=$1
+  local delay=0.5
+  local spinstr='|/-\'
+  [[ -n $2 ]] && printf "%b\n" "$2"
+  printf "Please wait... "
+  while [ "$(ps a | awk '{print $1}' | grep $pid)" ]; do
+    local temp=${spinstr#?}
+    printf " [%c]  "  "$spinstr"
+    local spinstr=$temp${spinstr%"$temp"}
+    sleep $delay
+    printf "\b\b\b\b\b\b"
+  done
+  printf "    \b\b\b\b"
+  printf "DONE!\n"
+}
+
 # Cheking System
+#
+# Returns:
+#   Error  If the system is not Linux, or can't check which distro you are using.
+#   Error  If the distro is not be full compatible with this script.
+#   Error  If you want to run this script on virtual environment.
+#   ...otherwise the script is running.
 #
 _check_os_and_distro() {
   # Check OS
@@ -60,6 +264,15 @@ _check_os_and_distro() {
 
 # Check system environment
 #
+# Usage:
+#   if ! _check_desktop; then
+#     echo "This function helps building apps on desktop environment. It's not recommended to run on virtual environment."
+#   fi
+#
+# Return:
+#   0   Desktop, if you run this script on desktop environment.
+#   1   Server, if you run this script on virtual environment.
+#
 _check_desktop() {
   # Check chassis
   if [[ $(hostnamectl | grep Chassis | awk '{print $2}') == "vm" ]]; then
@@ -72,6 +285,10 @@ _check_desktop() {
 }
 
 # Check timezone
+#
+# Return:
+#   0        If set and not equal UTC
+#   setting  If not set or equal UTC
 #
 _check_timezone() {
   _CUR_TIMEZONE="$(timedatectl | grep -e 'Time zone' | tr -s " " | cut -d ' ' -f 4)"
@@ -110,6 +327,27 @@ _check_git_config() {
 
 # Determine if a package exists
 #
+# Usage:
+#   if [[ $(_check_package_exists "packagename") == 0 ]]; then
+#     echo "packagename is installed."
+#   fi
+#
+#   _check_package_exists --print-status "packagename"
+#
+# Option:
+#   --print-status  Print package status information, if the package exists ... for example:
+#       ✔ (pack+snap) If the package is installed from two sources as well.
+#       ✔ (snap)      If the package is installed.
+#       ✔ (appimg)    If the package is present on your system as an AppImage [~/.local/bin].
+#       ✖ ()          If not.
+#
+# Arg:
+#   $1 (required): Name of package
+#
+# Returns:
+#   0  If the package is installed.
+#   1  If not.
+#
 _check_package_exists() {
   if [ $# -gt 2 ]; then
     echo "Error: Too many arguments in ${FUNCNAME[0]}() function!"
@@ -124,6 +362,13 @@ _check_package_exists() {
     local _PACKAGE=${1}
   fi
   local _COUNT=0; local _SOURCE=(); local _INSTALL_STATUS="✔" # https://coolsymbol.com/
+  # Software Source: main, universe, restricted, multiverse, etc....
+  #
+  # Attention: `which`, `hash` or `type` are not always 100% reliable checking methods (See, for example: software-properties-common):
+  # `hash "${_PACKAGE}"` or `type -P "${_PACKAGE}"` or `which "${_PACKAGE}"`
+  #
+  # Use instead of them something else. Maybe this command good for us: `dpkg-query`, or use them all.
+  #
   if [[ $(dpkg-query -W --showformat='${Status}\n' ${_PACKAGE} 2>/dev/null | grep "install ok installed" &> /dev/null; echo $?) == 0 ]]; then
     let _COUNT+=1
     _SOURCE+=( pack )
@@ -143,6 +388,15 @@ _check_package_exists() {
       _SOURCE+=( complied )
     fi
   fi
+  # Software Source: Snap Store
+  #
+  # Checking:
+  #   $(snap list 2>/dev/null | grep "" &>/dev/null; echo $?
+  #
+  # Return:
+  #   0  Yes, snaps is installed.
+  #   1  No snaps are installed yet.
+  #
   if hash snapd 2>/dev/null; then
     if [[ $(snap list | grep "^${_PACKAGE}" &> /dev/null; echo $?) == 0 ]]; then
       let _COUNT+=1
@@ -174,6 +428,13 @@ _check_package_exists() {
 
 # Script dependencies
 #
+# Variables:
+#   $_DEP_PACK[@]: Array for thise sript's dependencies
+#   $_REQ_PACK[@]: Package, what is not present in your system
+#
+# Return:
+#   Installed missing package, with cmd_install() function.
+#
 _check_dependencies() {
   # Depends packages
   local _DEP_PACK=("whiptail wget curl git"); local _REQ_PACK=""; local _MISSING_PACK="";
@@ -197,12 +458,21 @@ _check_dependencies() {
 
 # Exit with an error and print the specified message
 #
+# Usage:
+#   _error "Error message. Variable: $0"
+#
 _error() {
   printf "\n$(tput bold)$(tput setaf 1) ✖ Error: %s$(tput sgr0)\n\n" "${*}" 1>&2
   exit 1
 }
 
 # Get commands and command functions
+#
+# A function will be a command if its name contains the `cmd _` prefix.
+#
+# Returns:
+#   ${_CMD_FUNCTIONS[@]}   command function name in array
+#   ${_CMD_ALLOWED[@]}     allowed name of command
 #
 _get_command_functions() {
   local _function_list=($(printf "%s" "$(declare -F)" | sed -e "s/declare -f //g"))
@@ -222,7 +492,6 @@ _main() {
   _check_dependencies
   _check_timezone
   _check_git_config
-
   # Load allowed command
   _get_command_functions
 
@@ -323,18 +592,6 @@ HELPDESKTOP
   fi
   exit
 }
-
-# COMMAND: Whiptail Main Menu
-#
-# Return:
-#   Whiptail menu dialog box
-#
-_HELP[menu]=$(cat << HELPMENU
-The menu command displays an interactive menu.
-
-  Usage: $(basename "${0}") | $(basename "${0}") menu
-HELPMENU
-)
 
 # COMMAND: Whiptail Main Menu
 #
@@ -649,7 +906,6 @@ DESKTOPFILE
   whiptail --title "Desktop Entry: ${1}" --textbox $HOME/.local/share/applications/${1}.desktop 16 60
 }
 
-
 # VirtualBox - Helper function for cmd_install()...
 #
 _install_virtualbox() {
@@ -897,7 +1153,6 @@ cmd_install() {
   # Run settings
   _setting_app
 }
-
 
 # COMMAND: Removing software applications
 #
