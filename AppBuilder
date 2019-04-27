@@ -1,0 +1,237 @@
+#!/bin/bash
+
+_VERSION='1.0.0'
+
+_APP_COMMON=()
+_APP_ADVANCED=()
+_APP_GAME=()
+_APP_CODEC=()
+_APP_NON_FAVORITE=()
+
+declare -A _APP_INSTALL
+
+_APP_COMMON+=( nautilus )                        ; _APP_INSTALL[nautilus]="--pack"
+_APP_COMMON+=( gedit )                           ; _APP_INSTALL[gedit]="--pack"
+
+_APP_ADVANCED+=( dconf-editor )                  ; _APP_INSTALL[dconf-editor]="--pack"
+_APP_ADVANCED+=( gnome-tweak-tool )              ; _APP_INSTALL[gnome-tweak-tool]="--pack"
+
+_APP_NON_FAVORITE+=( ubuntu-web-launchers )      ; _APP_INSTALL[ubuntu-web-launchers]="--pack"
+_APP_NON_FAVORITE+=( gnome-characters )          ; _APP_INSTALL[gnome-characters]="--snap" # prefer main source to snap
+
+
+# Check if one element value exists in a list or array
+#
+_contains() {
+  local _list=(${*:2})
+  for _element in "${_list[@]:-}"; do [[ "${_element}" == "${1}" ]] && return 0; done
+  return 1
+}
+
+# Version controll
+#
+_check_version() {
+  test "$(printf '%s\n' "$@" | sort -V | head -n 1)" != "$1"
+}
+
+# Cheking System
+#
+_check_os_and_distro() {
+  # Check OS
+  [[ $(uname) != "Linux" ]] && printf "Sorry! This script only suports Linux!\nExiting...\n" && exit 1
+  # Check distribution
+  if [[ $(which lsb_release &>/dev/null; echo $?) -ne 0 ]]; then
+    printf "Sorry! Can't be checked which distribution you are using!\nExiting...\n"
+    exit 1
+  else
+    _DISTRIB_ID=$(cat /etc/*-release 2>/dev/null | grep DISTRIB_ID | cut -d= -f2); _DISTRIB_CODENAME=$(cat /etc/*-release 2>/dev/null | grep DISTRIB_CODENAME | cut -d= -f2); _UBUNTU_CODENAME=$(cat /etc/*-release 2>/dev/null | grep UBUNTU_CODENAME | cut -d= -f2); _DISTRIB_DESCRIPTION=$(lsb_release -ds)
+    if ! lsb_release -ds | grep -qE '(Ubuntu|Mint|elementary|Debian)'; then
+      if ! (whiptail --title "Warning" --yesno "You are using a distribution that may not be full compatible with this script. Are you sure you want to continue?" 10 50); then
+        exit 1
+      fi
+    fi
+  fi
+}
+
+# Check system environment
+#
+_check_desktop() {
+  # Check chassis
+  if [[ $(hostnamectl | grep Chassis | awk '{print $2}') == "vm" ]]; then
+    _CHAS_MESSAGE="This command \`${_CMD}\` helps building apps on desktop environment.\nIt's not recommended to run on server environment."
+    return 1
+  else
+    _CHAS_MESSAGE="This command \`${_CMD}\` helps building apps on server environment.\nIt's not recommended to run on desktop environment."
+    return 0
+  fi
+}
+
+# Check timezone
+#
+_check_timezone() {
+  _CUR_TIMEZONE="$(timedatectl | grep -e 'Time zone' | tr -s " " | cut -d ' ' -f 4)"
+  if [[ "${_CUR_TIMEZONE}" == "Etc/UTC" ]] || [[ "${_CUR_TIMEZONE}" == "" ]]; then
+    printf "Current timezone on system: %s\n" "${_CUR_TIMEZONE}"
+    read -p "Do you want to set a new timezone? [y/n] " REPLY
+    if [[ "${REPLY:-}" =~ ^[Yy]$ ]]; then
+      local _TIMEZONE=$(whiptail --inputbox "\nEnter the new time zone (format: Continent/City):" 8 75 --title "Timezone Setting" 3>&1 1>&2 2>&3)
+      if [[ $(timedatectl list-timezones | grep "${_TIMEZONE}" &> /dev/null; echo $?) != "0" ]]; then
+        _error "invalid timezone --'${_TIMEZONE}'"
+      else
+        sudo timedatectl set-timezone "${_TIMEZONE}" && whiptail --title "Success" --msgbox "The timezone changed to ${_TIMEZONE}." 7 80
+      fi
+    fi
+  else
+    return 0
+  fi
+}
+
+# Check git config
+#
+_check_git_config() {
+  if hash git 2>/dev/null; then
+    if [[ -z "$(git config user.name)" ]] || [[ -z "$(git config user.email)" ]]; then
+      printf "Git is installed, but missing your Git identity.\nThis is important because every Git commit uses this information.\n"
+      read -p "Do you want to set your user name and email address? [y/n] " REPLY
+      if [[ "${REPLY:-}" =~ ^[Yy]$ ]]; then
+        local _USER_GIT=$(whiptail --inputbox "\nEnter the name for Git user:" 8 75 --title "Git Setting" 3>&1 1>&2 2>&3)
+        local _EMAIL_GIT=$(whiptail --inputbox "\nEnter the e-mai adress for Git user:" 8 75 --title "Git Setting" 3>&1 1>&2 2>&3)
+        git config --global user.name "${_USER_GIT}"
+        git config --global user.email "${_EMAIL_GIT}"
+      fi
+    fi
+  fi
+}
+
+# Determine if a package exists
+#
+_check_package_exists() {
+  if [ $# -gt 2 ]; then
+    echo "Error: Too many arguments in ${FUNCNAME[0]}() function!"
+    exit 1
+  elif [ $# -eq 2 ]; then
+    if [ "${1}" != "--print-status" ]; then
+      echo "Error: Unrecognized option in ${FUNCNAME[0]}() function: \`${1}\`!"
+      exit 1
+    fi
+    local _PACKAGE=${2}
+  else
+    local _PACKAGE=${1}
+  fi
+  local _COUNT=0; local _SOURCE=(); local _INSTALL_STATUS="✔" # https://coolsymbol.com/
+  if [[ $(dpkg-query -W --showformat='${Status}\n' ${_PACKAGE} 2>/dev/null | grep "install ok installed" &> /dev/null; echo $?) == 0 ]]; then
+    let _COUNT+=1
+    _SOURCE+=( pack )
+  fi
+  # Software Source: AppImage
+  if [[ $(type -P "${_PACKAGE}" &> /dev/null; echo $?) == 0 ]]; then
+    let _COUNT+=1
+    if [ "$(type -P "${_PACKAGE}")" == "/usr/bin/${_PACKAGE}" ]; then
+      if ! _contains "pack" "${_SOURCE[*]}"; then
+        _SOURCE+=( pack )
+      fi
+    fi
+    if [ "$(type -P "${_PACKAGE}")" == "$HOME/.local/bin/${_PACKAGE}" ]; then
+      _SOURCE+=( appimg )
+    fi
+    if [ -f "/usr/local/share/${_PACKAGE}/Makefile" ]; then
+      _SOURCE+=( complied )
+    fi
+  fi
+  if hash snapd 2>/dev/null; then
+    if [[ $(snap list | grep "^${_PACKAGE}" &> /dev/null; echo $?) == 0 ]]; then
+      let _COUNT+=1
+      _SOURCE+=( snap )
+    fi
+  fi
+  # Software Source: Flat Store
+  if hash flatpak 2>/dev/null; then
+    if [[ $(flatpak list | grep "${_PACKAGE}" &> /dev/null; echo $?) == 0 ]]; then
+      let _COUNT+=1
+      _SOURCE+=( flat )
+    fi
+  fi
+  if [ "${1}" == "--print-status" ]; then
+    if [[ "${_COUNT}" -eq 0 ]]; then
+      _INSTALL_STATUS="✖"
+      _SOURCE+=( " -- " )
+    fi
+    # Print status and info of sources
+    (IFS="+$IFS"; printf '%s (%s)' "${_INSTALL_STATUS}" "${_SOURCE[*]}")
+  else
+    if [[ "${_COUNT}" -gt 0 ]]; then
+      echo 0
+    else
+      echo 1
+    fi
+  fi
+}
+
+# Script dependencies
+#
+_check_dependencies() {
+  # Depends packages
+  local _DEP_PACK=("whiptail wget curl git"); local _REQ_PACK=""; local _MISSING_PACK="";
+  for _MISSING_PACK in ${_DEP_PACK}; do
+    [[ $(_check_package_exists "${_MISSING_PACK}") != 0 ]] && _REQ_PACK+=("${_MISSING_PACK}")
+  done
+  if [ -n "${_REQ_PACK}" ]; then
+    printf "This script requires some packages, but the following are not present on your system.\n"
+    printf "  * %s\n" "${_REQ_PACK[@]}"
+    read -p 'Would you like to install these packages to continue? [Y/n] ' REPLY
+    case $REPLY in
+      [Yy]* )
+        cmd_install --pack "${_REQ_PACK[*]}" ;;
+      [Nn]* )
+        echo "Exiting..." && exit ;;
+      * )
+        echo "Sorry, try again." && _check_dependencies ;;
+    esac
+  fi
+}
+
+# Exit with an error and print the specified message
+#
+_error() {
+  printf "\n$(tput bold)$(tput setaf 1) ✖ Error: %s$(tput sgr0)\n\n" "${*}" 1>&2
+  exit 1
+}
+
+# Get commands and command functions
+#
+_get_command_functions() {
+  local _function_list=($(printf "%s" "$(declare -F)" | sed -e "s/declare -f //g"))
+  for _name in "${_function_list[@]}"; do
+    if [[ "${_name}" =~ ^cmd_(.*) ]]; then
+      _CMD_FUNCTIONS+=("${_name}")
+      _CMD_ALLOWED+=($(printf "%s" "${_name}" | sed -e "s/cmd_//g"))
+    fi
+  done
+}
+
+# The primary function for starting the program.
+#
+_main() {
+  # Checking things
+  _check_os_and_distro
+  _check_dependencies
+  _check_timezone
+  _check_git_config
+
+  # Load allowed command
+  _get_command_functions
+
+  # Default command
+  [[ -z "${_CMD:-}" ]] && _CMD=${1:-menu}
+
+  if ( [[ -n "${_CMD}" ]] && _contains "${_CMD}" "${_CMD_ALLOWED[*]}"); then
+    # If the command is defined, run its function...
+    cmd_"${_CMD}" "${@:2}"
+  else # If the command is not defined, run this...
+    echo -n
+  fi
+}
+
+# Call the `_main` function after everything has been defined
+#
+_main "$@"
