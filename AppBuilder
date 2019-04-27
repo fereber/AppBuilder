@@ -364,7 +364,7 @@ _check_package_exists() {
   local _COUNT=0; local _SOURCE=(); local _INSTALL_STATUS="✔" # https://coolsymbol.com/
   # Software Source: main, universe, restricted, multiverse, etc....
   #
-  # Attention: `which`, `hash` or `type` are not always 100% reliable checking methods (See, for example: software-properties-common):
+  # Attention: `which`, `hash` or `type` are not always 100% reliable checking methods (See, for example: software-properties-common or snapd):
   # `hash "${_PACKAGE}"` or `type -P "${_PACKAGE}"` or `which "${_PACKAGE}"`
   #
   # Use instead of them something else. Maybe this command good for us: `dpkg-query`, or use them all.
@@ -391,13 +391,13 @@ _check_package_exists() {
   # Software Source: Snap Store
   #
   # Checking:
-  #   $(snap list 2>/dev/null | grep "" &>/dev/null; echo $?
+  #   $(snap list 2>/dev/null | grep "" &>/dev/null; echo $?)
   #
   # Return:
   #   0  Yes, snaps is installed.
   #   1  No snaps are installed yet.
   #
-  if hash snapd 2>/dev/null; then
+  if [[ $(snap list 2>/dev/null | grep "" &>/dev/null; echo $?) == 0 ]]; then
     if [[ $(snap list | grep "^${_PACKAGE}" &> /dev/null; echo $?) == 0 ]]; then
       let _COUNT+=1
       _SOURCE+=( snap )
