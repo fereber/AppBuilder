@@ -2476,6 +2476,147 @@ _ssl_certificate() {
   fi
 }
 
+
+# COMMAND: Odoo
+#
+_HELP[odoo]=$(cat << HELPODOO
+
+            COMING SOON!!!
+
+The \`odoo\` command buids an Odoo server.
+
+  Usage:
+    $(basename "${0}") odoo [options] [<arguments>...]
+
+  Options:
+    -h, --help          Display this help
+        --debug         Run debug mode
+HELPODOO
+)
+
+cmd_odoo() {
+  # Options parser
+  _OPTS_ODOO=$(getopt --options h --long help,debug --name "$(basename "${0}") ${_CMD}" -- "${@}")
+  if [ $? != 0 ] ; then _error "invalid option(s)" ; fi
+  eval set -- "${_OPTS_ODOO}"
+
+  while true ; do
+    case "${1}" in
+      -h|--help) cmd_help ${_CMD}; shift ;;
+      --debug) set -x ; _DEBUG=true ; shift ;;
+      --) shift ; break ;;
+      *) _error "internal option error '${1}'" ;;
+    esac
+  done
+
+  _check_desktop && printf "%b\n" "${_CHAS_MESSAGE}" && exit 1
+}
+
+# COMMAND: Node.js
+#
+_HELP[nodejs]=$(cat << HELPNODEJS
+
+            COMING SOON!!!
+
+The \`nodejs\` command buids a Node.JS web server.
+
+  Usage:
+    $(basename "${0}") nodejs [options] [<arguments>...]
+
+  Options:
+    -h, --help          Display this help
+        --debug         Run debug mode
+HELPNODEJS
+)
+
+cmd_nodejs() {
+  # Options parser
+  _OPTS_NODEJS=$(getopt --options h --long help,debug --name "$(basename "${0}") ${_CMD}" -- "${@}")
+  if [ $? != 0 ] ; then _error "invalid option(s)" ; fi
+  eval set -- "${_OPTS_NODEJS}"
+
+  while true ; do
+    case "${1}" in
+      -h|--help) cmd_help ${_CMD}; shift ;;
+      --debug) set -x ; _DEBUG=true ; shift ;;
+      --) shift ; break ;;
+      *) _error "internal option error '${1}'" ;;
+    esac
+  done
+
+  cmd_help ${_CMD}
+}
+
+# COMMAND: Apache
+#
+_HELP[apache]=$(cat << HELPAPACHE
+
+            COMING SOON!!!
+
+The \`apache\` command buids an Apache server.
+
+  Usage:
+    $(basename "${0}") apache [options] [<arguments>...]
+
+  Options:
+    -h, --help          Display this help
+        --debug         Run debug mode
+HELPAPACHE
+)
+
+cmd_apache() {
+  # Options parser
+  _OPTS_APACHE=$(getopt --options h --long help,debug --name "$(basename "${0}") ${_CMD}" -- "${@}")
+  if [ $? != 0 ] ; then _error "invalid option(s)" ; fi
+  eval set -- "${_OPTS_APACHE}"
+
+  while true ; do
+    case "${1}" in
+      -h|--help) cmd_help ${_CMD}; shift ;;
+      --debug) set -x ; _DEBUG=true ; shift ;;
+      --) shift ; break ;;
+      *) _error "internal option error '${1}'" ;;
+    esac
+  done
+
+  _check_desktop && printf "%b\n" "${_CHAS_MESSAGE}" && exit 1
+}
+
+# COMMAND: WordPress CLI
+#
+_HELP[wp]=$(cat << HELPWORDPRESS
+
+            COMING SOON!!!
+
+The \`wp\` command installs WordPress.
+
+  Usage:
+    $(basename "${0}") wp [options] [<arguments>...]
+
+  Options:
+    -h, --help          Display this help
+        --debug         Run debug mode
+HELPWORDPRESS
+)
+
+cmd_wp() {
+  # Options parser
+  _OPTS_WP=$(getopt --options h --long help,debug --name "$(basename "${0}") ${_CMD}" -- "${@}")
+  if [ $? != 0 ] ; then _error "invalid option(s)" ; fi
+  eval set -- "${_OPTS_WP}"
+
+  while true ; do
+    case "${1}" in
+      -h|--help) cmd_help ${_CMD}; shift ;;
+      --debug) set -x ; _DEBUG=true ; shift ;;
+      --) shift ; break ;;
+      *) _error "internal option error '${1}'" ;;
+    esac
+  done
+
+  _check_desktop && printf "%b\n" "${_CHAS_MESSAGE}" && exit 1
+}
+
 # Call the `_main` function after everything has been defined
 #
 _main "$@"
