@@ -2490,7 +2490,6 @@ _ssl_certificate() {
   fi
 }
 
-
 # COMMAND: Odoo
 #
 _HELP[odoo]=$(cat << HELPODOO
@@ -2524,6 +2523,7 @@ cmd_odoo() {
   done
 
   _check_desktop && printf "%b\n" "${_CHAS_MESSAGE}" && exit 1
+  cmd_help ${_CMD}
 }
 
 # COMMAND: Node.js
@@ -2594,6 +2594,7 @@ cmd_apache() {
   done
 
   _check_desktop && printf "%b\n" "${_CHAS_MESSAGE}" && exit 1
+  cmd_help ${_CMD}
 }
 
 # COMMAND: WordPress CLI
@@ -2629,6 +2630,7 @@ cmd_wp() {
   done
 
   _check_desktop && printf "%b\n" "${_CHAS_MESSAGE}" && exit 1
+  cmd_help ${_CMD}
 }
 
 # Call the `_main` function after everything has been defined
