@@ -607,6 +607,25 @@ _system_settings() {
   # cmd_menu
 }
 
+# Display error information (\`dmesg\`)
+#
+_system_error() {
+  if [[ $(dmesg --level=err,crit,emerg -H --time-format iso | grep -m1 :; echo $?) == 1 ]]; then
+    printf "There isn't error message.\n"
+  else
+    dmesg --level=err,crit,emerg -H --time-format iso
+  fi
+}
+
+# Display system information
+#
+_system_info() {
+  hostnamectl
+  timedatectl
+  sudo ufw status
+  sudo lshw -short -c system -c memory -c processor
+}
+
 # Call the `_main` function after everything has been defined
 #
 _main "$@"
