@@ -1437,7 +1437,7 @@ cmd_nginx() {
     sudo mkdir -p /var/cache/nginx/{client_temp,proxy_temp,fastcgi_temp,uwsgi_temp,scgi_temp}
 
     # Install required softwares
-    sudo apt install -y build-essential
+    sudo apt install -y build-essential libssl-dev
 
     # Update or install GeoIP2 database
     if hash geoipupdate 2>/dev/null; then
@@ -1616,7 +1616,7 @@ http {
     add_header X-Content-Type-Options nosniff always;
     add_header X-Frame-Options SAMEORIGIN always;
     add_header X-XSS-Protection "1; mode=block" always;
-    add_header Strict-Transport-Security "max-age=31536000" always;
+    add_header Strict-Transport-Security "max-age=31536000; includeSubDomains" always;
     add_header Content-Security-Policy "default-src 'self' https://*; connect-src 'self' https://* wss://*; font-src 'self' https://* blob: data:; frame-src 'self' https://* blob: data:; img-src 'self' https://* blob: data:; media-src 'self' https://* blob: data:; object-src 'self' https://* blob: data:; script-src 'self' https://* 'unsafe-inline' 'unsafe-eval'; style-src 'self' https://* 'unsafe-inline';";
     add_header "X-UA-Compatible" "IE=Edge";
 
@@ -1632,17 +1632,6 @@ http {
         ~video/                    max;
         ~audio/                    max;
     }
-
-    ##
-    # Enable GZIP
-    ##
-    gzip off;
-    gzip_comp_level 5;
-    gzip_min_length 256;
-    gzip_vary on;
-    gzip_proxied any;
-    gzip_types text/plain text/css application/javascript image/*;
-    gzip_disable "MSIE [1-6]\.(?!.*SV1)";
 
     ##
     # FastCGI cache config
@@ -1843,8 +1832,8 @@ server {
     ##
     ssl_prefer_server_ciphers on;
     ssl_protocols TLSv1.2 TLSv1.3;
-    ssl_ciphers "EECDH+AESGCM:EDH+AESGCM:AES256+EECDH:AES256+EDH";
-    # ssl_cipher "TLS-CHACHA20-POLY1305-SHA256:TLS-AES-256-GCM-SHA384"; # More secure but less compatible
+    # ssl_early_data on; # http://nginx.org/en/docs/http/ngx_http_ssl_module.html#ssl_early_data
+    ssl_ciphers "TLS-CHACHA20-POLY1305-SHA256:TLS-AES-256-GCM-SHA384:TLS-AES-128-GCM-SHA256:EECDH+AESGCM:EDH+AESGCM:AES256+EECDH:AES256+EDH";
     ssl_session_cache shared:SSL:10m;
     ssl_session_timeout 10m;
     ssl_session_tickets off; # Requires nginx >= 1.5.9
@@ -2070,6 +2059,7 @@ server {
 
 server {
     listen 80;
+    listen [::]:80;
     server_name ${_SUB}${_DOMAIN};
     root ${_ROOT_PATH};
 
@@ -2081,6 +2071,17 @@ server {
         default_type "text/plain";
         root /var/www/_letsencrypt;
     }
+
+    ##
+    # GZIP
+    ##
+    gzip on;
+    gzip_comp_level 5;
+    gzip_min_length 256;
+    gzip_vary on;
+    gzip_proxied any;
+    gzip_types text/plain text/css application/javascript image/*;
+    gzip_disable "MSIE [1-6]\.(?!.*SV1)";
 
 HTTPSERVERBLOCK
 
@@ -2134,6 +2135,7 @@ server {
 
 server {
     listen 443 ssl http2;
+    listen [::]:443 ssl http2;
     server_name ${_SUB}${_DOMAIN};
     root ${_ROOT_PATH};
 
@@ -2150,8 +2152,8 @@ server {
     ##
     ssl_prefer_server_ciphers on;
     ssl_protocols TLSv1.2 TLSv1.3;
-    ssl_ciphers "EECDH+AESGCM:EDH+AESGCM:AES256+EECDH:AES256+EDH";
-    # ssl_cipher "TLS-CHACHA20-POLY1305-SHA256:TLS-AES-256-GCM-SHA384"; # More secure but less compatible
+    # ssl_early_data on; # http://nginx.org/en/docs/http/ngx_http_ssl_module.html#ssl_early_data
+    ssl_ciphers "TLS-CHACHA20-POLY1305-SHA256:TLS-AES-256-GCM-SHA384:TLS-AES-128-GCM-SHA256:EECDH+AESGCM:EDH+AESGCM:AES256+EECDH:AES256+EDH";
     ssl_session_cache shared:SSL:10m;
     ssl_session_timeout 10m;
     ssl_session_tickets off; # Requires nginx >= 1.5.9
@@ -2160,6 +2162,11 @@ server {
     ssl_certificate /etc/letsencrypt/live/${_DOMAIN}/fullchain.pem;
     ssl_certificate_key /etc/letsencrypt/live/${_DOMAIN}/privkey.pem;
     ${_SSL_STAPLING:-}
+
+    ##
+    # GZIP
+    ##
+    gzip off;
 
 HTTPSSERVERBLOCK
       fi # ...end if $_SSL true
@@ -2404,7 +2411,7 @@ _ssl_certificate() {
   if [ ! -f "/etc/letsencrypt/ssl-dhparams.pem" ]; then
     sudo mkdir -p /etc/letsencrypt
     (sudo openssl genpkey -genparam -algorithm DH -out /etc/letsencrypt/ssl-dhparams.pem -pkeyopt dh_paramgen_prime_len:4096 > /dev/null 2>&1) &
-    _spinner $! "Generating DH parameters...\nOnly need to be generated once if there is not exists!\nThis is going to take a few (10-15) minutes."
+    _spinner $! "Generating DH parameters...\nOnly need to be generated once if it is not exists!\nThis is going to take a few (10-15) minutes."
   fi
 
   # Self-signed certificate
