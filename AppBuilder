@@ -1643,7 +1643,7 @@ http {
     ##
     # Enable GZIP
     ##
-    gzip on;
+    gzip off;
     gzip_comp_level 5;
     gzip_min_length 256;
     gzip_vary on;
