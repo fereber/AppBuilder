@@ -1511,7 +1511,7 @@ cmd_nginx() {
     sudo make install > /dev/null
     sudo make clean > /dev/null
 
-    sudo ln -s /usr/lib/nginx/modules /etc/nginx/modules
+    sudo ln -s /usr/lib/nginx/modules /etc/nginx/
 
     # Allow UFW for Nginx
     sudo bash -c "cat > /etc/ufw/applications.d/nginx" <<NGINXUFW
