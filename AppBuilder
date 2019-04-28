@@ -1437,7 +1437,7 @@ cmd_nginx() {
     sudo mkdir -p /var/cache/nginx/{client_temp,proxy_temp,fastcgi_temp,uwsgi_temp,scgi_temp}
 
     # Install required softwares
-    sudo apt install -y build-essential libssl-dev
+    sudo apt install -y build-essential libssl-dev geoipupdate
 
     # Update or install GeoIP2 database
     if hash geoipupdate 2>/dev/null; then
@@ -1445,10 +1445,11 @@ cmd_nginx() {
         (sudo geoipupdate) &
         _spinner $! "Updating GeoIP database \`/usr/share/GeoIP\`.\nThis is going to take a few minutes."
       fi
-    else
+    fi
+    if ! hash libmaxminddb-dev 2>/dev/null; then
       sudo add-apt-repository ppa:maxmind/ppa -y
       sudo apt update -qq
-      sudo apt install -y geoipupdate libmaxminddb-dev
+      sudo apt install -y  libmaxminddb-dev
       sudo geoipupdate
     fi
 
