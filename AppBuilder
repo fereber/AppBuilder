@@ -1317,8 +1317,9 @@ ${_NGINX_NOTE}
                         argument <domainname>
     -r, --root          Set server root path
                         [default argument: '/var/www/<doman>/html']
-    -s, --ssl           Enable https server
-                        [default: disable]
+    -s, --ssl           Enable https server [default: disable]
+                        all server certificate is located in this folder:
+                        '/etc/letsencrypt/live/'
         --sub           Set subdomain alias
                         argument <sugdomainalias>
         --type=<args>   Set type for server block
@@ -2407,11 +2408,11 @@ FASTCGICACHEPATH
 #
 _ssl_certificate() {
 
-  # Generating DH parameters
+  # Generate a Diffie-Hellman parameter
   if [ ! -f "/etc/letsencrypt/ssl-dhparams.pem" ]; then
     sudo mkdir -p /etc/letsencrypt
-    (sudo openssl dhparam -out /etc/letsencrypt/ssl-dhparams.pem 4096 > /dev/null 2>&1) &
-    _spinner $! "Generating DH parameters. Only need to be generated once if there is not exists!\nThis is going to take a few (5-10) minutes."
+    (sudo openssl genpkey -genparam -algorithm DH -out /etc/letsencrypt/ssl-dhparams.pem -pkeyopt dh_paramgen_prime_len:4096 > /dev/null 2>&1) &
+    _spinner $! "Generating DH parameters...\nOnly need to be generated once if there is not exists!\nThis is going to take a few (10-15) minutes."
   fi
 
   # Self-signed certificate
