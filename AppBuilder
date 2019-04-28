@@ -2472,13 +2472,13 @@ _ssl_certificate() {
     fi
 
     # Run certbot (Test: certbot --dry-run)
-    if [[ $(sudo certbot certificates 2>/dev/null| grep --quiet www.${_DOMAIN}; echo $?) != 0 ]]; then
+    if [[ $(sudo certbot certificates 2>/dev/null | grep --quiet www.${_DOMAIN}; echo $?) != 0 ]]; then
       sudo certbot certonly --webroot --agree-tos --no-eff-email --email ${_CERT_EMAIL} -w /var/www/_letsencrypt -d ${_DOMAIN} -d www.${_DOMAIN} || _error "creating Let’s Encrypt certificate -- '${_DOMAIN}'"
     fi
 
     # Expand certbot (for example new sub_DOMAIN) - Let’s Encrypt doesn’t offer wildcard (at the current time [2018-07-26])
-    if ${_SUB:-}; then
-      if [[ $(sudo certbot certificates | grep --quiet ${_SUB}${_DOMAIN}; echo $?) != 0 ]]; then
+    if [[ -n "${_SUB}" ]]; then
+      if [[ $(sudo certbot certificates 2>/dev/null | grep --quiet ${_SUB}${_DOMAIN}; echo $?) != 0 ]]; then
         sudo certbot certonly --expand --agree-tos --no-eff-email -w /var/www/_letsencrypt -d ${_DOMAIN} -d www.${_DOMAIN} -d ${_SUB}${_DOMAIN} || _error "creating Let’s Encrypt certificate -- '${_SUB}${_DOMAIN}'"
       fi
     fi
