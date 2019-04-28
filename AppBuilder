@@ -428,30 +428,22 @@ _check_package_exists() {
 
 # Script dependencies
 #
-# Variables:
-#   $_DEP_PACK[@]: Array for thise sript's dependencies
-#   $_REQ_PACK[@]: Package, what is not present in your system
-#
-# Return:
-#   Installed missing package, with cmd_install() function.
-#
 _check_dependencies() {
-  # Depends packages
-  local _DEP_PACK=("whiptail wget curl git"); local _REQ_PACK=""; local _MISSING_PACK="";
-  for _MISSING_PACK in ${_DEP_PACK}; do
-    [[ $(_check_package_exists "${_MISSING_PACK}") != 0 ]] && _REQ_PACK+=("${_MISSING_PACK}")
+  local _MISSING_PACK=();
+  for _REQ_PACK in whiptail wget curl git; do
+    if ! hash "${_REQ_PACK}" 2>/dev/null; then
+      _MISSING_PACK+=("${_REQ_PACK}")
+    fi
   done
-  if [ -n "${_REQ_PACK}" ]; then
-    printf "This script requires some packages, but the following are not present on your system.\n"
-    printf "  * %s\n" "${_REQ_PACK[@]}"
+  if [ -n "${_MISSING_PACK}" ]; then
+    printf "This script requires some packages,\nbut the following are not present on your system.\n"
+    printf "  * %s\n" "${_MISSING_PACK[@]}"
     read -p 'Would you like to install these packages to continue? [Y/n] ' REPLY
     case $REPLY in
-      [Yy]* )
-        cmd_install --pack "${_REQ_PACK[*]}" ;;
-      [Nn]* )
-        echo "Exiting..." && exit ;;
-      * )
-        echo "Sorry, try again." && _check_dependencies ;;
+      [Yy]*)
+        sudo apt install -y "${_MISSING_PACK[*]}" ;;
+      [Nn]*) printf "Exiting...\n" && exit ;;
+      * ) printf "Sorry, try again.\n" && _check_dependencies ;;
     esac
   fi
 }
