@@ -1534,13 +1534,9 @@ NGINXUFW
 
     # Restoring config files
     if [ -d "/etc/nginx_backup_${_BACKUP_TIME:-}" ]; then
-      # Keep the compiled 'fresh install' files in /etc/nginx/nginx_default
-      if [ -d "/etc/nginx_default" ]; then
-        sudo rm -rf /etc/nginx_default
-      fi
-      sudo mv /etc/nginx /etc/nginx_default
-      sudo mv /etc/nginx_backup_${_BACKUP_TIME:-} /etc/nginx
-      sudo cp /etc/nginx_default/*.default /etc/nginx/
+      sudo cp /etc/nginx_backup_${_BACKUP_TIME:-}/nginx.conf /etc/nginx/
+      sudo cp /etc/nginx_backup_${_BACKUP_TIME:-}/snippets/* /etc/nginx/snippets/
+      sudo cp /etc/nginx_backup_${_BACKUP_TIME:-}/conf.d/* /etc/nginx/conf.d/
     fi
     printf " ✔ Nginx is downloaded and installed.\n"
     # Continue configurations...
@@ -1552,10 +1548,13 @@ NGINXUFW
   ##
   if "${_CONFIG:-false}"; then
 
-    # Create server directories if doesn't exists
+    # Manage server directories
     sudo mkdir -p \
       /etc/{nginx/conf.d,nginx/snippets,letsencrypt} \
       /var/www/{default_server/html,_letsencrypt,_cache}
+    if [ -d "/etc/nginx/html"]; then
+      sudo rm -rf /etc/nginx/html
+    fi
 
     # Nginx default config file
     sudo bash -c "cat > /etc/nginx/nginx.conf" <<NGINXCONFIG
@@ -1664,9 +1663,6 @@ NGINXCONFIG
 
     # Nginx (global) restrictions config
     sudo bash -c "cat > /etc/nginx/snippets/restrictions.conf" <<NGINXRESTRICTION
-##
-# Global restrictions (If custom error pages defined, than 'logging off' here is irrelevant)
-##
 location ~ /\. {
     deny all;
 }
@@ -1674,7 +1670,6 @@ location ~ /\. {
 location = /favicon.ico {
   	log_not_found off;
   	access_log off;
-    error_log off;
 }
 
 location = /robots.txt {
@@ -1683,9 +1678,7 @@ location = /robots.txt {
     access_log off;
 }
 
-##
 # WordPress specific config
-##
 location = /wp-config.php { deny all; }
 location = /wp-config-sample.php { return 404; }
 location = /readme.html { deny all; }
@@ -1697,29 +1690,34 @@ location ~* ^/(wp-content)/(.*?)\.(zip|gz|tar|bzip2|7z)\$ { deny all; }
 rewrite ^/wp-content/uploads/edd/(.*)\.zip\$ / permanent;
 rewrite ^/media/edd/(.*)\.zip\$ / permanent;
 
-##
 # PhpMyadmin - Block attempts to access phpMyAdmin (If you actually use it, don't include this rule!)
-##
 # location ~* .([pP]hp[mM]y[aA]dmin) { return 404; }
 
-##
 # Disallow cgi scripts
-##
 # location ~* \.(pl|cgi|py|sh|lua)\$ { return 444; }
 # Make sure files with the following extensions do not get loaded by nginx because nginx would display the source code...
 # location ~* \.(engine|inc|info|install|make|module|profile|test|po|sh|.*sql|theme|tpl(\.php)?|xtmpl)\$|^(\..*|Entries.*|Repository|Root|Tag|Template)\$|\.php_ { return 444; }
 
-##
 # Maintenance - Allow full access to certain IP
-##
 # if (\$remote_addr != "192.168.33.1") { return 503; }
 NGINXRESTRICTION
 
+    # Nginx ssl config
+    _SSL_CIPHERS="$(openssl ciphers -tls1_3 -s):$(openssl ciphers -tls1_2 -s)"
+    sudo bash -c  "cat > /etc/nginx/snippets/ssl.conf" <<NGINXSSL
+ssl_protocols TLSv1.3 TLSv1.2;
+ssl_ciphers '${_SSL_CIPHERS}';
+ssl_prefer_server_ciphers on;
+ssl_ecdh_curve secp384r1;
+# ssl_early_data on; # http://nginx.org/en/docs/http/ngx_http_ssl_module.html#ssl_early_data
+ssl_session_cache shared:SSL:10m;
+ssl_session_timeout 10m;
+ssl_session_tickets off; # Requires nginx >= 1.5.9
+ssl_dhparam /etc/letsencrypt/ssl-dhparams.pem;
+NGINXSSL
+
     # Nginx ssl-stapling config
     sudo bash -c  "cat > /etc/nginx/snippets/ssl-stapling.conf" <<NGINXSSL
-##
-# SSL Stapling
-##
 ssl_stapling on;
 ssl_stapling_verify on;
 resolver 8.8.8.8 8.8.4.4 valid=60s;
@@ -1728,9 +1726,6 @@ NGINXSSL
 
     # Nginx phpmyadmin config
     sudo bash -c "cat > /etc/nginx/snippets/phpmyadmin.conf" <<NGINXPHPADMIN
-##
-# PhpMyAdmin
-##
 location /phpmyadmin {
 
     root /usr/share/;
@@ -1806,13 +1801,9 @@ server {
     access_log /var/log/nginx/default-access.log main;
     error_log /var/log/nginx/default-error.log;
 
-    ##
-    # Restrictions
-    ##
     include /etc/nginx/snippets/restrictions.conf;
 
     ${_return}return 444;
-
 }
 
 server {
@@ -1829,19 +1820,15 @@ server {
     }
 
     ##
-    # SSL Enable
+    # SSL
     ##
-    ssl_prefer_server_ciphers on;
-    ssl_protocols TLSv1.2 TLSv1.3;
-    # ssl_early_data on; # http://nginx.org/en/docs/http/ngx_http_ssl_module.html#ssl_early_data
-    ssl_ciphers "TLS-CHACHA20-POLY1305-SHA256:TLS-AES-256-GCM-SHA384:TLS-AES-128-GCM-SHA256:EECDH+AESGCM:EDH+AESGCM:AES256+EECDH:AES256+EDH";
-    ssl_session_cache shared:SSL:10m;
-    ssl_session_timeout 10m;
-    ssl_session_tickets off; # Requires nginx >= 1.5.9
-    ssl_ecdh_curve secp384r1; # Requires nginx >= 1.1.0
-    ssl_dhparam /etc/letsencrypt/ssl-dhparams.pem;
-    ssl_certificate /etc/letsencrypt/live/${_THIS_HOST}/fullchain.pem;
-    ssl_certificate_key /etc/letsencrypt/live/${_THIS_HOST}/privkey.pem;
+    include /etc/nginx/snippets/ssl.conf;
+    ssl_certificate /etc/letsencrypt/live/${_DOMAIN}/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/${_DOMAIN}/privkey.pem;
+
+    ##
+    # SSL Stapling
+    ##
     ${_SSL_STAPLING:-}
 
     ##
@@ -2065,7 +2052,7 @@ server {
     root ${_ROOT_PATH};
 
     ##
-    # Let's Encrypt Settings (it is necessary for the certificate to be renewable by certbot)
+    # Let's Encrypt
     ##
     location ^~ /.well-known/acme-challenge/ {
         allow all;
@@ -2091,9 +2078,6 @@ HTTPSERVERBLOCK
         # Add Block: Restrictions ...and close a valid config file befor create certificate
         #
         sudo bash -c "cat >> /etc/nginx/conf.d/${_SUB}${_DOMAIN}.conf" <<RESTRICTIONSBLOCK
-    ##
-    # Restrictions
-    ##
     include /etc/nginx/snippets/restrictions.conf;
 }
 RESTRICTIONSBLOCK
@@ -2128,9 +2112,17 @@ server {
 server {
     listen 443 ssl http2;
     server_name www.${_SUB}${_DOMAIN};
-    ssl_dhparam /etc/letsencrypt/ssl-dhparams.pem;
+
+    ##
+    # SSL
+    #
+    include /etc/nginx/snippets/ssl.conf;
     ssl_certificate /etc/letsencrypt/live/${_DOMAIN}/fullchain.pem;
     ssl_certificate_key /etc/letsencrypt/live/${_DOMAIN}/privkey.pem;
+
+    ##
+    # Redirecting
+    ##
     return 301 https://${_SUB}${_DOMAIN}\$request_uri;
 }
 
@@ -2149,19 +2141,15 @@ server {
     }
 
     ##
-    # SSL Enable
+    # SSL
     ##
-    ssl_prefer_server_ciphers on;
-    ssl_protocols TLSv1.2 TLSv1.3;
-    # ssl_early_data on; # http://nginx.org/en/docs/http/ngx_http_ssl_module.html#ssl_early_data
-    ssl_ciphers "TLS-CHACHA20-POLY1305-SHA256:TLS-AES-256-GCM-SHA384:TLS-AES-128-GCM-SHA256:EECDH+AESGCM:EDH+AESGCM:AES256+EECDH:AES256+EDH";
-    ssl_session_cache shared:SSL:10m;
-    ssl_session_timeout 10m;
-    ssl_session_tickets off; # Requires nginx >= 1.5.9
-    ssl_ecdh_curve secp384r1; # Requires nginx >= 1.1.0
-    ssl_dhparam /etc/letsencrypt/ssl-dhparams.pem;
+    include /etc/nginx/snippets/ssl.conf;
     ssl_certificate /etc/letsencrypt/live/${_DOMAIN}/fullchain.pem;
     ssl_certificate_key /etc/letsencrypt/live/${_DOMAIN}/privkey.pem;
+
+    ##
+    # SSL Stapling
+    ##
     ${_SSL_STAPLING:-}
 
     ##
@@ -2326,6 +2314,9 @@ BASICPHPBLOCK
           # Add Block: PhpMyAdmin
           #
           sudo bash -c "cat >> /etc/nginx/conf.d/${_SUB}${_DOMAIN}.conf" <<PHPMYADMINBLOCK
+    ##
+    # Php MyAdmin
+    ##
     include /etc/nginx/snippets/phpmyadmin.conf;
 
 PHPMYADMINBLOCK
@@ -2349,6 +2340,7 @@ EOF
       if hash php 2>/dev/null; then
         if [[ "${_BLOCK_TYPE:-basic}" == "fastcgi" ]]; then
           sudo bash -c "cat >> /etc/nginx/conf.d/${_SUB}${_DOMAIN}.conf" <<FASTCGICACHEPATH
+
     ##
     # Fastcgi Cache Path
     ##
