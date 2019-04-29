@@ -1308,7 +1308,7 @@ ${_NGINX_NOTE}
     -b, --block         Add or update a server block
                         argument <domainname>
     -r, --root          Set server root path
-                        [default argument: '/var/www/<doman>/html']
+                        [default: '/var/www/<domainname>/html']
     -s, --ssl           Enable https server [default: disable]
                         all server certificate is located in this folder:
                         '/etc/letsencrypt/live/'
@@ -1334,7 +1334,6 @@ cmd_nginx() {
   local _DOMAIN=""
   local _SUB=""
   local _DISABLE_SITE=""
-  local _ROOT_PATH="/var/www"
   _OPTS_NGINX=$(getopt --options hficb:r:s,d: --long help,debug,install,config,block:,root:,ssl,type::,sub:,disable:,force --name "$(basename "${0}") ${_CMD}" -- "${@}")
   if [ $? != 0 ] ; then _error "invalid option(s)" ; fi
   eval set -- "${_OPTS_NGINX}"
@@ -1551,7 +1550,7 @@ NGINXUFW
     # Manage server directories
     sudo mkdir -p \
       /etc/{nginx/conf.d,nginx/snippets,letsencrypt} \
-      /var/www/{default_server/html,_letsencrypt,_cache}
+      /var/www/default_server/{html,cache,letsencrypt}
     if [ -d "/etc/nginx/html"]; then
       sudo rm -rf /etc/nginx/html
     fi
@@ -1979,16 +1978,20 @@ NGINXSERVICE
       _SUB="${_SUB}."
     fi
 
-    # Set server root
+    # Set server paths
     if "${_CUSTOM_ROOT:-false}"; then
       _ROOT_PATH=/var/www${_ROOT_PATH}
     else
-      _ROOT_PATH=${_ROOT_PATH}/${_SUB}${_DOMAIN}/html
+      _ROOT_PATH=/var/www/${_SUB}${_DOMAIN}/html
     fi
+    _CACHE_PATH=/var/www/${_SUB}${_DOMAIN}/cache
+    _LETSENCRYPT_PATH=/var/www/${_SUB}${_DOMAIN}/letsencrypt
 
     # Only in case of testing on localhost
     if [[ "${_DOMAIN}" == "${_THIS_HOST}" ]]; then
       _ROOT_PATH=/var/www/default_server/html
+      _CACHE_PATH=/var/www/default_server/cached
+      _LETSENCRYPT_PATH=/var/www/default_server/letsencrypt
       _ssl_certificate
       $(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/$(basename "$0") nginx --config --ssl
       exit
@@ -1998,6 +2001,7 @@ NGINXSERVICE
     printf "\nCreating / Updating a Server Block for %s\n" "${_SUB}${_DOMAIN}"
     printf "  - domain:        %s\n" "${_SUB}${_DOMAIN}"
     printf "  - root path:     %s\n" "${_ROOT_PATH}"
+    printf "  - cache path:    %s\n" "${_CACHE_PATH}"
     printf "  - ssl:           %s\n" "${_SSL:-false}"
     printf "  - type:          %s\n" "${_BLOCK_TYPE:-basic}"
     read -p "Are you sure? [y/n] " REPLY
@@ -2008,8 +2012,8 @@ NGINXSERVICE
       _FQDN="${_IP} ${_THIS_HOST}.${_DOMAIN} ${_THIS_HOST}"
       grep "${_FQDN}" /etc/hosts &>/dev/null || printf "%s\n" "${_FQDN}" | sudo tee -a /etc/hosts > /dev/null
 
-      # Create root path
-      sudo mkdir -p ${_ROOT_PATH}
+      # Create server path
+      sudo mkdir -p {${_ROOT_PATH},${_CACHE_PATH},${_LETSENCRYPT_PATH}}
 
       # Add index file
       if [ ! -f "${_ROOT_PATH}/index.html" ]; then
@@ -2057,7 +2061,7 @@ server {
     location ^~ /.well-known/acme-challenge/ {
         allow all;
         default_type "text/plain";
-        root /var/www/_letsencrypt;
+        root ${_LETSENCRYPT_PATH};
     }
 
     ##
@@ -2101,7 +2105,7 @@ server {
     location ^~ /.well-known/acme-challenge/ {
         allow all;
         default_type "text/plain";
-        root /var/www/_letsencrypt;
+        root ${_LETSENCRYPT_PATH};
     }
 
     location / {
@@ -2137,7 +2141,7 @@ server {
     ##
     location ^~ /.well-known/acme-challenge/ {
         default_type "text/plain";
-        root /var/www/_letsencrypt;
+        root ${_LETSENCRYPT_PATH};
     }
 
     ##
@@ -2345,7 +2349,7 @@ EOF
     # Fastcgi Cache Path
     ##
     # fastcgi_cache_path /var/run/nginx-cache-fastcgi levels=1:2 keys_zone=fastcgicache_${_SUB}${_DOMAIN}:10m max_size=500m inactive=60m use_temp_path=off;
-    fastcgi_cache_path /var/www/_cache/${_DOMAIN} levels=1:2 keys_zone=fastcgicache_${_SUB}${_DOMAIN}:10m max_size=500m inactive=60m use_temp_path=off;
+    fastcgi_cache_path ${_CACHE_PATH} levels=1:2 keys_zone=fastcgicache_${_SUB}${_DOMAIN}:10m max_size=500m inactive=60m use_temp_path=off;
 FASTCGICACHEPATH
         fi
       fi
@@ -2433,7 +2437,7 @@ _ssl_certificate() {
     fi
 
     # Import to web browsers (vagrant-triggers or manual import)
-    cat "/etc/letsencrypt/live/${_DOMAIN}/fullchain.pem" | sudo tee /var/www/_letsencrypt/${_DOMAIN}-local-fullchain.crt > /dev/null
+    cat "/etc/letsencrypt/live/${_DOMAIN}/fullchain.pem" | sudo tee ${_LETSENCRYPT_PATH}/${_DOMAIN}-local-fullchain.crt > /dev/null
 
     #  Including ssl stapling snippet --> Ssl stapling not supported on localhost
     # _SSL_STAPLING="include /etc/nginx/snippets/ssl-stapling.conf;"
@@ -2448,7 +2452,7 @@ _ssl_certificate() {
     printf "  - add this entry to your \`/etc/hosts\` file (on host):\n    $(tput setaf 3)%s$(tput sgr0)\n" "${_HOST_CONTENT}"
 
     if "${_SSL:-false}"; then
-      printf "  - import the \`/var/www/_letsencrypt/%s-local-fullchain.crt\` file\n    to the Chrome web browser\n" "${_DOMAIN}"
+      printf "  - import the \`${_LETSENCRYPT_PATH}/%s-local-fullchain.crt\` file\n    to the Chrome web browser\n" "${_DOMAIN}"
     fi
 
   else
@@ -2459,19 +2463,19 @@ _ssl_certificate() {
       sudo add-apt-repository ppa:certbot/certbot -y
       sudo apt update && sudo apt -y install certbot python-certbot-nginx
     fi
-    if [ ! -d "/var/www/_letsencrypt/.well-known/acme-challenge" ]; then
-      sudo mkdir -p /var/www/_letsencrypt/.well-known/acme-challenge
+    if [ ! -d "${_LETSENCRYPT_PATH}/.well-known/acme-challenge" ]; then
+      sudo mkdir -p "${_LETSENCRYPT_PATH}/.well-known/acme-challenge"
     fi
 
     # Run certbot (Test: certbot --dry-run)
     if [[ $(sudo certbot certificates 2>/dev/null | grep --quiet www.${_DOMAIN}; echo $?) != 0 ]]; then
-      sudo certbot certonly --webroot --agree-tos --no-eff-email --email ${_CERT_EMAIL} -w /var/www/_letsencrypt -d ${_DOMAIN} -d www.${_DOMAIN} || _error "creating Let’s Encrypt certificate -- '${_DOMAIN}'"
+      sudo certbot certonly --webroot --agree-tos --no-eff-email --email ${_CERT_EMAIL} -w ${_LETSENCRYPT_PATH} -d ${_DOMAIN} -d www.${_DOMAIN} || _error "creating Let’s Encrypt certificate -- '${_DOMAIN}'"
     fi
 
     # Expand certbot (for example new sub_DOMAIN) - Let’s Encrypt doesn’t offer wildcard (at the current time [2018-07-26])
     if [[ -n "${_SUB}" ]]; then
       if [[ $(sudo certbot certificates 2>/dev/null | grep --quiet ${_SUB}${_DOMAIN}; echo $?) != 0 ]]; then
-        sudo certbot certonly --expand --agree-tos --no-eff-email -w /var/www/_letsencrypt -d ${_DOMAIN} -d www.${_DOMAIN} -d ${_SUB}${_DOMAIN} || _error "creating Let’s Encrypt certificate -- '${_SUB}${_DOMAIN}'"
+        sudo certbot certonly --expand --agree-tos --no-eff-email -w ${_LETSENCRYPT_PATH} -d ${_DOMAIN} -d www.${_DOMAIN} -d ${_SUB}${_DOMAIN} || _error "creating Let’s Encrypt certificate -- '${_SUB}${_DOMAIN}'"
       fi
     fi
 
