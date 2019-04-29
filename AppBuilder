@@ -1270,7 +1270,7 @@ Vagrant.configure("2") do |config|
   config.vm.box = "ubuntu/bionic64"
   config.vm.network "private_network", ip: "${_IP}"
   config.vm.hostname = "VPS"
-  config.vm.synced_folder "www/", "/var/www", create: true
+  config.vm.synced_folder "www/", "/var/www", create: true, owner: "www-data", group: "www-data"
   config.vm.provider "virtualbox" do |vb|
     vb.memory = "4096"
     vb.name = "VPS-$RANDOM"
@@ -1434,6 +1434,8 @@ cmd_nginx() {
 
     # Nginx's some directory is not created by default
     sudo mkdir -p /var/cache/nginx/{client_temp,proxy_temp,fastcgi_temp,uwsgi_temp,scgi_temp}
+    sudo chown -R nginx:root /var/cache/nginx/
+    sudo chmod -R 700 /var/cache/nginx/
 
     # Install required softwares
     sudo apt install -y build-essential libssl-dev geoipupdate
@@ -1551,9 +1553,11 @@ NGINXUFW
     sudo mkdir -p \
       /etc/{nginx/conf.d,nginx/snippets,letsencrypt} \
       /var/www/default_server/{html,cache,letsencrypt}
-    if [ -d "/etc/nginx/html"]; then
-      sudo rm -rf /etc/nginx/html
-    fi
+    if [ -d "/etc/nginx/html"]; then sudo rm -rf /etc/nginx/html; fi
+    
+    # Set ownership and permissions
+    sudo chown -R ${_USER_WEB}:${_USER_WEB} /var/www
+    sudo chown -R root:root /var/log/nginx
 
     # Nginx default config file
     sudo bash -c "cat > /etc/nginx/nginx.conf" <<NGINXCONFIG
@@ -1895,10 +1899,6 @@ INDEXHTML
     if [ ! -f "/var/www/default_server/html/favicon.ico" ]; then
       sudo touch /var/www/default_server/html/favicon.ico
     fi
-
-    # Set ownership and permissions
-    sudo chown -R ${_USER_WEB}:${_USER_WEB} /var/www/default_server/html
-    sudo chown -R root:root /var/log/nginx
 
     # Nginx init script
     if [ -f "/lib/systemd/system/nginx.service" ]; then
