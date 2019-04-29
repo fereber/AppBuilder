@@ -1786,12 +1786,12 @@ server {
     root /var/www/default_server/html;
 
     ##
-    # Let's Encrypt Settings (it is necessary for the certificate to be renewable by certbot)
+    # Let's Encrypt Settings
     ##
     location ^~ /.well-known/acme-challenge/ {
-        allow all;
         default_type "text/plain";
-        root /var/www/_letsencrypt;
+        root ${_LETSENCRYPT_PATH};
+        allow all;
     }
 
     ##
@@ -1815,7 +1815,8 @@ server {
     ##
     location ^~ /.well-known/acme-challenge/ {
         default_type "text/plain";
-        root /var/www/_letsencrypt;
+        root ${_LETSENCRYPT_PATH};
+        allow all;
     }
 
     ##
@@ -2100,12 +2101,12 @@ server {
     server_name ${_SUB}${_DOMAIN} www.${_SUB}${_DOMAIN};
 
     ##
-    # Let's Encrypt Settings (it is necessary for the certificate to be renewable by certbot)
+    # Let's Encrypt Settings
     ##
     location ^~ /.well-known/acme-challenge/ {
-        allow all;
         default_type "text/plain";
         root ${_LETSENCRYPT_PATH};
+        allow all;
     }
 
     location / {
@@ -2142,6 +2143,7 @@ server {
     location ^~ /.well-known/acme-challenge/ {
         default_type "text/plain";
         root ${_LETSENCRYPT_PATH};
+        allow all;
     }
 
     ##
