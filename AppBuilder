@@ -1553,8 +1553,8 @@ NGINXUFW
     sudo mkdir -p \
       /etc/{nginx/conf.d,nginx/snippets,letsencrypt} \
       /var/www/default_server/{html,cache,letsencrypt}
-    if [ -d "/etc/nginx/html"]; then sudo rm -rf /etc/nginx/html; fi
-    
+    if [ -d "/etc/nginx/html" ]; then sudo rm -rf /etc/nginx/html; fi
+
     # Set ownership and permissions
     sudo chown -R ${_USER_WEB}:${_USER_WEB} /var/www
     sudo chown -R root:root /var/log/nginx
