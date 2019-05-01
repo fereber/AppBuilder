@@ -1361,13 +1361,15 @@ cmd_nginx() {
   done
 
   if ! "${_FORCE:-false}"; then
-    printf "Please wait... "
+    printf "Please wait...\n"
     _check_desktop && printf "%b\n" "${_CHAS_MESSAGE}" && exit 1
   fi
 
-  local _VER_LAT_NGINX="$(echo $(curl -s http://nginx.org/en/CHANGES) | grep -m1 'Changes with nginx' | cut -d' ' -f4)"
+  # local _VER_LAT_NGINX="$(echo $(curl -s http://nginx.org/en/CHANGES) | grep -m1 'Changes with nginx' | cut -d' ' -f4)"
+  local _VER_LAT_NGINX="$(wget -qO- http://nginx.org/en/download.html | egrep -o 'nginx-[0-9\.]+.tar.gz' | sort -V | tail -1 | sed -nre 's/^[^0-9]*(([0-9]+\.)*[0-9]+).*/\1/p')"
   local _VER_PCRE="8.43"
   local _VER_ZLIB="1.2.11"
+  # local _VER_LAT_OPENSSL="$(wget -qO- --no-check-certificate https://www.openssl.org/source/ | egrep -o 'openssl-[A-Za-z0-9\.]+.tar.gz' | sort -V | tail -1 | sed -nre 's|^[^0-9]*(([0-9]+\.)*[A-Za-z0-9]+).*|\1|p')"
   local _VER_OPENSSL="1.1.1b"
   local _VER_GEOIP2="3.2"
   local _IP="$(hostname -I | awk '{print $1}')"
