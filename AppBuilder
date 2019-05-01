@@ -1661,6 +1661,21 @@ http {
 }
 NGINXCONFIG
 
+    # Nginx proxy config
+    sudo bash -c "cat > /etc/nginx/snippets/proxy.conf" <<NGINXPROXY
+##
+# Proxy Settings
+##
+proxy_set_header X-Forwarded-Host \$host;
+proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
+proxy_set_header X-Forwarded-Proto \$scheme;
+proxy_set_header X-Real-IP \$remote_addr;
+proxy_set_header Early-Data \$ssl_early_data;
+proxy_connect_timeout 720s;
+proxy_send_timeout 720s;
+proxy_read_timeout 720s;
+NGINXPROXY
+
     # Nginx (global) restrictions config
     sudo bash -c "cat > /etc/nginx/snippets/restrictions.conf" <<NGINXRESTRICTION
 location ~ /\. {
@@ -2192,13 +2207,6 @@ LOGBLOCK
     ##
     # Odoo
     ##
-    proxy_read_timeout 720s;
-    proxy_connect_timeout 720s;
-    proxy_send_timeout 720s;
-    proxy_set_header X-Forwarded-Host \$host;
-    proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
-    proxy_set_header X-Forwarded-Proto \$scheme;
-    proxy_set_header X-Real-IP \$remote_addr;
 
     ##
     # Redirect longpoll requests to odoo longpolling port
@@ -2213,6 +2221,7 @@ LOGBLOCK
     location / {
       proxy_redirect off;
       proxy_pass http://odoo;
+      include /etc/nginx/snippets/proxy.conf;
     }
 
 ODOOBLOCK
