@@ -1535,12 +1535,6 @@ ports=80,443/tcp
 NGINXUFW
     sudo ufw allow 'Nginx Full' comment 'Web Server (HTTP + HTTPS)' > /dev/null
 
-    # Restoring config files
-    if [ -d "/etc/nginx_backup_${_BACKUP_TIME:-}" ]; then
-      sudo cp /etc/nginx_backup_${_BACKUP_TIME:-}/nginx.conf /etc/nginx/
-      sudo cp /etc/nginx_backup_${_BACKUP_TIME:-}/snippets/* /etc/nginx/snippets/
-      sudo cp /etc/nginx_backup_${_BACKUP_TIME:-}/conf.d/* /etc/nginx/conf.d/
-    fi
     printf " ✔ Nginx is downloaded and installed.\n"
     # Continue configurations...
     _CONFIG=true
