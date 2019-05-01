@@ -1997,11 +1997,9 @@ NGINXSERVICE
     # Only in case of testing on localhost
     if [[ "${_DOMAIN}" == "${_THIS_HOST}" ]]; then
       _ROOT_PATH=/var/www/default_server/html
-      _CACHE_PATH=/var/www/default_server/cached
+      _CACHE_PATH=/var/www/default_server/cache
       _LETSENCRYPT_PATH=/var/www/default_server/letsencrypt
       _ssl_certificate
-      $(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/$(basename "$0") nginx --config --ssl
-      exit
     fi
 
     # Confirmation
