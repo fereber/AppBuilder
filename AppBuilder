@@ -1442,18 +1442,19 @@ cmd_nginx() {
     # Install required softwares
     sudo apt install -y build-essential libssl-dev geoipupdate
 
+    # Download GeoIP2 database
+    if [[ $(dpkg-query -W --showformat='${Status}\n' libmaxminddb-dev 2>/dev/null | grep "install ok installed" &> /dev/null; echo $?) == 0 ]]; then
+      sudo add-apt-repository ppa:maxmind/ppa -y
+      sudo apt update -qq
+      sudo apt install -y  libmaxminddb-dev
+    fi
+
     # Update or install GeoIP2 database
     if hash geoipupdate 2>/dev/null; then
       if [ ! -f "/usr/share/GeoIP/.geoipupdate.lock" ]; then
         (sudo geoipupdate) &
         _spinner $! "Updating GeoIP database \`/usr/share/GeoIP\`.\nThis is going to take a few minutes."
       fi
-    fi
-    if ! hash libmaxminddb-dev 2>/dev/null; then
-      sudo add-apt-repository ppa:maxmind/ppa -y
-      sudo apt update -qq
-      sudo apt install -y  libmaxminddb-dev
-      sudo geoipupdate
     fi
 
     # You can verify compiler support for __uint128_t with the following
