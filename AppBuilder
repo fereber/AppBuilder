@@ -1962,7 +1962,7 @@ NGINXSERVICE
       sudo systemctl enable nginx.service || _error "install and enable Nginx -- 'sysremctl'"
       sudo systemctl start nginx.service || _error "install and starting Nginx -- 'sysremctl'"
       # sudo ln -sf /lib/systemd/system/nginx.service /etc/systemd/system/multi-user.target.wants/
-      printf " ✔  Starting Nginx is OK\n"
+      printf "  ✔  Starting Nginx is OK\n"
       [ -d /home/vagrant ] && printf " ⇢  Default server: $(tput setaf 3)http://%s$(tput sgr0)\n" "${_IP}"
     else
       # Check if Nginx will automatically initiate after a reboot:
@@ -1970,8 +1970,8 @@ NGINXSERVICE
         sudo systemctl enable nginx.service || _error "configure and enable Nginx -- 'sysremctl'"
       fi
       sudo nginx -s reload || _error "configure and reloading Nginx"
-      printf " ✔  Nginx Reloading is OK\n"
-      [ -d /home/vagrant ] && printf " ⇢  Default server: $(tput setaf 3)http://%s$(tput sgr0)\n" "${_IP}"
+      printf "  ✔  Nginx Reloading is OK\n"
+      [ -d /home/vagrant ] && printf "  ⇢  Default server: $(tput setaf 3)http://%s$(tput sgr0)\n" "${_IP}"
     fi
   fi # ..end of server configure
 
@@ -2365,7 +2365,7 @@ FASTCGICACHEPATH
 
       # Reload Nginx
       sudo nginx -s reload || _error "reloading Nginx -- 'after adding a server block'"
-      printf "\n ✔  Server block for %s is ready!\n" "${_SUB}${_DOMAIN}"
+      printf "\n  ✔  Server block for %s is ready!\n" "${_SUB}${_DOMAIN}"
 
       # Print info message(s)
       #
@@ -2383,7 +2383,7 @@ FASTCGICACHEPATH
       fi
 
       [[ "${_DOMAIN}" == "${_THIS_HOST}" ]] && _DOMAIN=${_IP}
-      printf "\nOpen up your web browser and navigate to following url:\n ⇢  $(tput setaf 3)%s://%s$(tput sgr0)\n" "${_SCHEME}" "${_SUB}${_DOMAIN}"
+      printf "\n  Open up your web browser and navigate to following url:\n  ⇢  $(tput setaf 3)%s://%s$(tput sgr0)\n" "${_SCHEME}" "${_SUB}${_DOMAIN}"
 
 
     else # ... end if confirmation is YES
@@ -2456,11 +2456,11 @@ _ssl_certificate() {
     else
       _HOST_CONTENT="${_IP} ${_DOMAIN} www.${_DOMAIN}"
     fi
-    printf "\nDon't forget:\n"
+    printf "\n  Don't forget, if you are used Vagrantbox:\n"
     printf "  - add this entry to your \`/etc/hosts\` file (on host):\n    $(tput setaf 3)%s$(tput sgr0)\n" "${_HOST_CONTENT}"
 
     if "${_SSL:-false}"; then
-      printf "  - import the \`${_LETSENCRYPT_PATH}/%s-local-fullchain.crt\` file\n    to the Chrome web browser\n" "${_DOMAIN}"
+      printf "  - import the \`../${_SUB}${_DOMAIN}/letsencrypt/%s-local-fullchain.crt\` file\n    to the Chrome web browser\n" "${_DOMAIN}"
     fi
 
   else
