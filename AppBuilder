@@ -1706,10 +1706,16 @@ rewrite ^/media/edd/(.*)\.zip\$ / permanent;
 NGINXRESTRICTION
 
     # Nginx ssl config
-    _SSL_CIPHERS="$(openssl ciphers -tls1_3 -s):$(openssl ciphers -tls1_2 -s)"
+    _SSL_CIPHERS_TLS1_2="$(openssl ciphers -tls1_2 -s):"
+    _VER_CUR_OPENSSL="$(openssl version 2>&1)"; _VER_CUR_OPENSSL="${_VER_CUR_OPENSSL:8:6}"
+    if _check_version "${_VER_CUR_OPENSSL}" "1.1.1"; then
+      _SSL_CIPHERS_TLS1_3="$(openssl ciphers -tls1_3 -s):"
+    else
+      _SSL_CIPHERS_TLS1_3="TLS_AES_256_GCM_SHA384:TLS_CHACHA20_POLY1305_SHA256:TLS_AES_128_GCM_SHA256:"
+    fi
     sudo bash -c  "cat > /etc/nginx/snippets/ssl.conf" <<NGINXSSL
 ssl_protocols TLSv1.3 TLSv1.2;
-ssl_ciphers '${_SSL_CIPHERS}';
+ssl_ciphers '${_SSL_CIPHERS_TLS1_3}${_SSL_CIPHERS_TLS1_2}';
 ssl_prefer_server_ciphers on;
 ssl_ecdh_curve secp384r1;
 # ssl_early_data on; # http://nginx.org/en/docs/http/ngx_http_ssl_module.html#ssl_early_data
