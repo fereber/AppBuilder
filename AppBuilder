@@ -1385,7 +1385,7 @@ cmd_nginx() {
       printf "A newer version (%s) is available than the current version (%s)!\n" "${_VER_LAT_NGINX}" "${_VER_CUR_NGINX}"
       read -p "Do you want me to update? [y/n] " REPLY
     else
-      printf " ✔  Nginx (%s) is up to date!\n" "${_VER_CUR_NGINX}"
+      printf "  ✔  Nginx (%s) is up to date!\n" "${_VER_CUR_NGINX}"
       if "${_INSTALL:-false}"; then
         read -p "Do you want me to rebuild? [y/n] " REPLY
       fi
@@ -1536,7 +1536,7 @@ ports=80,443/tcp
 NGINXUFW
     sudo ufw allow 'Nginx Full' comment 'Web Server (HTTP + HTTPS)' > /dev/null
 
-    printf " ✔ Nginx is downloaded and installed.\n"
+    printf "  ✔ Nginx is downloaded and installed.\n"
     # Continue configurations...
     _CONFIG=true
   fi # ...end of Nginx server's downloading, updating or installing
@@ -1797,7 +1797,7 @@ server {
     ##
     location ^~ /.well-known/acme-challenge/ {
         default_type "text/plain";
-        root ${_LETSENCRYPT_PATH};
+        root /var/www/default_server/letsencrypt;
         allow all;
     }
 
@@ -1822,7 +1822,7 @@ server {
     ##
     location ^~ /.well-known/acme-challenge/ {
         default_type "text/plain";
-        root ${_LETSENCRYPT_PATH};
+        root /var/www/default_server/letsencrypt;
         allow all;
     }
 
@@ -1830,8 +1830,8 @@ server {
     # SSL
     ##
     include /etc/nginx/snippets/ssl.conf;
-    ssl_certificate /etc/letsencrypt/live/${_DOMAIN}/fullchain.pem;
-    ssl_certificate_key /etc/letsencrypt/live/${_DOMAIN}/privkey.pem;
+    ssl_certificate /etc/letsencrypt/live/${_THIS_HOST}/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/${_THIS_HOST}/privkey.pem;
 
     ##
     # SSL Stapling
@@ -1997,6 +1997,8 @@ NGINXSERVICE
       _CACHE_PATH=/var/www/default_server/cache
       _LETSENCRYPT_PATH=/var/www/default_server/letsencrypt
       _ssl_certificate
+      $(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/$(basename "$0") nginx --config --ssl
+      exit
     fi
 
     # Confirmation
