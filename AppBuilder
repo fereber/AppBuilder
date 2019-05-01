@@ -504,7 +504,8 @@ _main() {
       case "${1}" in
         -h|--help)     cmd_help ${_CMD} ; shift ;;
         --debug)   set -x ; _DEBUG=true ; shift ;;
-        -u|--update)  _system_update    ; shift ;;
+        -u)           _system_update    ; shift ;;
+        --update)     _script_update    ; shift ;;
         -c|--clean)   _system_cleanup   ; shift ;;
         -i|--info)    _system_info      ; shift ;;
         -e|--error)   _system_error     ; shift ;;
@@ -567,12 +568,13 @@ The $(basename "$0") is a post install script to help building and setting your 
     $(basename "${0}") [commands] [options] [<arguments>...]
 
   Options:
-    -u, --update        Update system
+    -u                  Update system
     -c, --clean         Cleanup system
     -s, --setting       Configure system
     -i, --info          Display system information
     -e, --error         Display error information (\`dmesg\`)
-    -v, --version       Print script version number
+    -v, --version       Print this script version number
+        --update        Update this script (from github)
     -h, --help          Display this help
         --debug         Run debug mode
 
@@ -801,6 +803,13 @@ _system_update() {
   if [[ -n "$(check-language-support)" ]]; then
     sudo apt install -y $(check-language-support)
   fi
+}
+
+# Script updating
+#
+_script_update() {
+  wget -qO- https://raw.githubusercontent.com/fereber/AppBuilder/master/AppBuilder -O $(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/$(basename "$0")
+  chmod +x $(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/$(basename "$0")
 }
 
 # System cleaning
