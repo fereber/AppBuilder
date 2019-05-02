@@ -642,7 +642,11 @@ cmd_menu(){
         "_system_error" "  Print Error" \
         "cmd_menu" "" \
         "cmd_menu" "Installing Applications:" \
-        "cmd_nginx" "  Build Nginx" \
+        "cmd_lemp" "  LEMP Stack" \
+        "cmd_nginx" "  Nginx" \
+        "cmd_mysql" "  MySQL" \
+        "cmd_php" "  Php" \
+        "cmd_odoo" "  Odoo" \
       3>&1 1>&2 2>&3)
   fi
   if [ $? = 0 ]; then
