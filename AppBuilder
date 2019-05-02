@@ -1319,16 +1319,16 @@ ${_NGINX_NOTE}
     -c, --config        Update all the config files and reload server
     -b, --block         Add or update a server block
                         argument <domainname>
+        --type=<args>   Set type for server block
+                        block types: <basic>|<php>|<fastcgi>|<odoo>|<nodejs>
+                        [default: basic]
+        --sub           Set subdomain alias
+                        argument <sugdomainalias>
     -r, --root          Set server root path
                         [default: '/var/www/<domainname>/html']
     -s, --ssl           Enable https server [default: disable]
                         all server certificate is located in this folder:
                         '/etc/letsencrypt/live/'
-        --sub           Set subdomain alias
-                        argument <sugdomainalias>
-        --type=<args>   Set type for server block
-                        block types: <basic>|<php>|<fastcgi>|<odoo>|<nodejs>
-                        [default: basic]
     -d, --disable       Disable server block
                         argument: <domainname>
     -h, --help          Display this help
