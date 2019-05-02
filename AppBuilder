@@ -2699,6 +2699,180 @@ EOF
   fi
 }
 
+# COMMAND: Php
+#
+_HELP[php]=$(cat << HELPHP
+The \`php\` command installs PHP on system.
+
+  Usage:
+    $(basename "${0}") php [options] [<arguments>...]
+
+  Options:
+    -c, --config        Config Php <<PHPCONFIG...
+                        and PhpMyAmin <<PHPMYADMINCONFIG...
+    -h, --help          Display this help
+        --force         Enable running on desktop
+        --debug         Run debug mode
+HELPHP
+)
+
+cmd_php() {
+  # Options parser
+  _OPTS_PHP=$(getopt --options hc --long help,debug,config,force --name "$(basename "${0}") ${_CMD}" -- "${@}")
+  if [ $? != 0 ] ; then _error "invalid option(s)" ; fi
+  eval set -- "${_OPTS_PHP}"
+
+  while true ; do
+    case "${1}" in
+      -h|--help) cmd_help ${_CMD}; shift ;;
+      -c|--config) _CONFIG=true ; shift ;;
+      --debug) set -x ; _DEBUG=true ; shift ;;
+      --force) _FORCE=true ; shift ;;
+      --) shift ; break ;;
+      *) _error "internal option error '${1}'" ;;
+    esac
+  done
+
+  if ! "${_FORCE:-false}"; then
+    _check_desktop && printf "%b\n" "${_CHAS_MESSAGE}" && exit 1
+  fi
+
+  local _VER_PHP="7.2"
+  local _VER_PHP_MYADMIN="4.8.5"
+
+  if ! hash php 2>/dev/null; then
+
+    # Install php and modules
+    sudo apt -y install php${_VER_PHP}-common php${_VER_PHP}-fpm \
+      php${_VER_PHP}-mbstring \
+      php${_VER_PHP}-xmlrpc \
+      php${_VER_PHP}-gd \
+      php${_VER_PHP}-xml \
+      php${_VER_PHP}-mysql \
+      php${_VER_PHP}-cli \
+      php${_VER_PHP}-zip \
+      php${_VER_PHP}-soap \
+      php${_VER_PHP}-curl
+
+    # Start MySQL server
+    sudo systemctl start php${_VER_PHP}-fpm || _error "starting PHP"
+
+    # Enable the database server starting after a reboot
+    sudo systemctl enable php${_VER_PHP}-fpm || _error "enabling PHP"
+
+    # Enable config at first install
+    _CONFIG=true
+  else
+    if [[ "${_OPTS_PHP}" == " --" ]]; then
+      printf "  ✔ PHP is already installed\n"
+      exit
+    fi
+  fi
+
+  if "${_CONFIG:-false}"; then
+
+    local _IP="$(hostname -I | awk '{print $1}')"
+    [[ "${_FORCE:-false}" ]] && local _IP="$(hostname -i)"
+    [ -d /home/vagrant ] && local _IP="$(hostname -I | awk '{print $2}')"
+    _check_timezone
+
+    sudo bash -c "cat > /etc/php/${_VER_PHP}/fpm/conf.d/myphp.ini" <<EOF
+cgi.fix_pathinfo = 0
+memory_limit = 128M
+post_max_size = 64M
+upload_max_filesize = 64M
+max_execution_time = 300
+max_input_time = 1000
+session.cookie_secure = 1
+session.use_only_cookies = 1
+session.use_strict_mode = 1
+# opcache.enable=1
+# opcache.memory_consumption=128
+# opcache.interned_strings_buffer=8
+# opcache.max_accelerated_files=4000
+# realpath_cache_size = 64k
+# realpath_cache_ttl = 3600
+log_errors = On
+error_reporting = E_ALL
+display_errors = Off
+error_log = /var/log/php_error.log
+date.timezone = ${_CUR_TIMEZONE}
+disable_functions = exec,shell_exec,pcntl_alarm,pcntl_fork,pcntl_waitpid,pcntl_wait,pcntl_wifexited,pcntl_wifstopped,pcntl_wifsignaled,pcntl_wifcontinued,pcntl_wexitstatus,pcntl_wtermsig,pcntl_wstopsig,pcntl_signal,pcntl_signal_dispatch,pcntl_get_last_error,pcntl_strerror,pcntl_sigprocmask,pcntl_sigwaitinfo,pcntl_sigtimedwait,pcntl_exec,pcntl_getpriority,pcntl_setpriority,
+EOF
+
+    # PhpMyAdmin
+    #
+    # Update PhpMyAdmin:
+    #   remove /usr/share/phpmyadmin and run this script with `php` command
+    #
+    if [ ! -d "/usr/share/phpmyadmin " ]; then
+      sudo mkdir -p /usr/share/phpmyadmin
+      if [ ! -d "/tmp/phpMyAdmin-${_VER_PHP_MYADMIN}-english/" ]; then
+        wget -qO- https://files.phpmyadmin.net/phpMyAdmin/${_VER_PHP_MYADMIN}/phpMyAdmin-${_VER_PHP_MYADMIN}-english.tar.gz -O /tmp/phpMyAdmin-${_VER_PHP_MYADMIN}-english.tar.gz
+        tar -xvzf /tmp/phpMyAdmin-${_VER_PHP_MYADMIN}-english.tar.gz -C /tmp
+        sudo mv -f /tmp/phpMyAdmin-${_VER_PHP_MYADMIN}-english/ /usr/share/phpmyadmin/
+      fi
+
+      # Fix X-XSS-Protection duplicate error in console of Chrome
+      # sudo sed -i '/X-XSS-Protection/s/^/\/\//' /usr/share/phpmyadmin/libraries/classes/Header.php
+      # opposite operation: '/X-XSS-Protection/s/^#//'
+    fi
+
+    # PhpMyAdmin config file
+    if ! hash 2>/dev/null 'pwgen'; then sudo apt-get -y install pwgen; fi ; _BLOWFISH_SEC=$(pwgen -s 32 1)
+
+    sudo bash -c "cat > /usr/share/phpmyadmin/config.inc.php" <<PHPMYADMINCONFIG
+<?php
+/* Servers configuration */
+\$i = 0;
+/* Server: localhost [1] */
+\$i++;
+\$cfg['Servers'][\$i]['verbose']      = '';
+\$cfg['Servers'][\$i]['host']         = '${_IP}';
+\$cfg['Servers'][\$i]['port']         = '';
+\$cfg['Servers'][\$i]['socket']       = '';
+\$cfg['Servers'][\$i]['auth_type']    = 'cookie';
+\$cfg['Servers'][\$i]['user']         = '';
+\$cfg['Servers'][\$i]['password']     = '';
+\$cfg['Servers'][\$i]['AllowRoot']    = false;
+\$cfg['Servers'][\$i]['extension']    = 'mysqli';
+\$cfg['Servers'][\$i]['ssl']          = true;
+\$cfg['Servers'][\$i]['ssl']          = true;
+\$cfg['Servers'][\$i]['ssl_verify']   = false;
+/* End of servers configuration */
+\$cfg['blowfish_secret']                   = '${_BLOWFISH_SEC}';
+\$cfg['DefaultLang']                       = 'en';
+\$cfg['ServerDefault']                     = 1;
+\$cfg['UploadDir']                         = '/var/www/';
+\$cfg['SaveDir']                           = '/var/www/';
+\$cfg['BZipDump']                          = false;
+\$cfg['PmaNoRelation_DisableWarning']      = true;
+\$cfg['NavigationDisplayLogo']             = false;
+\$cfg['LoginCookieValidityDisableWarning'] = true;
+\$cfg['Server']['hide_db']                 = '';
+\$cfg['collation_connection']              = 'utf8_unicode_ci';
+\$cfg['VersionCheck']                      = false;
+?>
+PHPMYADMINCONFIG
+
+    # Premissions
+    local _USER_WEB="www-data"
+    sudo chown -R ${_USER_WEB}:${_USER_WEB} /usr/share/phpmyadmin
+    sudo chmod 755 -R /usr/share/phpmyadmin
+    if [ -f "/usr/share/phpmyadmin/tmp" ]; then
+      sudo chmod 700 /usr/share/phpmyadmin/tmp
+    fi
+    sudo chmod 644 /usr/share/phpmyadmin/config.inc.php
+
+    # Restart service
+    sudo systemctl restart php${_VER_PHP}-fpm || _error "starting PHP"
+    if hash nginx 2>/dev/null; then
+      sudo systemctl restart nginx || _error "restarting Nginx after PHP settings"
+    fi
+    printf "  ✔ PHP is installed and configured\n"
+  fi
+}
+
 # COMMAND: Odoo
 #
 _HELP[odoo]=$(cat << HELPODOO
