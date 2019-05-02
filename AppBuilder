@@ -2521,8 +2521,10 @@ The \`mysql\` command installs a MySQL server.
    $(basename "${0}") mysql [options] [<arguments>...]
 
  Options:
-   -c, --config        Config MySQL
-   -b, --backup        Backup database
+   -c, --config        Config MySQL <<MYSQLCONFIG...
+   -a, --add-user      Add new user with root privileges
+   -b, --backup        Backup a database
+   -i, --info          Display MySQL databases and user info
    -h, --help          Display this help
        --debug         Run debug mode
 HELPMYSQL
@@ -2530,14 +2532,16 @@ HELPMYSQL
 
 cmd_mysql() {
   # Options parser
-  _OPTS_MYSQL=$(getopt --options hcb --long help,debug,config,backup --name "$(basename "${0}") ${_CMD}" -- "${@}")
+  _OPTS_MYSQL=$(getopt --options hcaib --long help,debug,config,add-user,info,backup --name "$(basename "${0}") ${_CMD}" -- "${@}")
   if [ $? != 0 ] ; then _error "invalid option(s)" ; fi
   eval set -- "${_OPTS_MYSQL}"
 
   while true ; do
     case "${1}" in
       -c|--config) _CONFIG=true ; shift ;;
+      -a|--add-user) _ADD_NEW_USER=true ; shift ;;
       -b|--backup) _BACKUP=true ; shift ;;
+      -i|--info) _INFO=true ; shift ;;
       -h|--help) cmd_help ${_CMD}; shift ;;
       --debug) set -x ; _DEBUG=true ; shift ;;
       --) shift ; break ;;
@@ -2546,23 +2550,11 @@ cmd_mysql() {
   done
 
   if [[ $(dpkg-query -W --showformat='${Status}\n' mysql-server 2>/dev/null | grep "install ok installed" &> /dev/null; echo $?) != 0 ]]; then
-
-    # Set password for root user and create a new user
-    _ROOT_MYSQL_PASS="$(whiptail --passwordbox "Enter root password for MySQL:" 8 78 --title "MySQL Server Installation" 3>&1 1>&2 2>&3)"
-    _USER_MYSQL="$(whiptail --inputbox "\nEnter a new username for MysQL:" 8 75 --title "Add New MySQL User" 3>&1 1>&2 2>&3)"
-    _USER_MYSQL_PASS="$(whiptail --passwordbox "Enter your password:" 8 78 --title "Add New MySQL User" 3>&1 1>&2 2>&3)"
+    # Set password for root user
+    _ROOT_MYSQL_PASS="$(whiptail --passwordbox "\nEnter root (strong) password for MySQL:" 8 78 --title "MySQL Server Installation" 3>&1 1>&2 2>&3)"
 
     # Install MySQL server
     sudo apt -y install mysql-server
-
-    # Add new MySQL user with root privileges
-    sudo mysql -u root <<EOF
-CREATE USER IF NOT EXISTS '${_USER_MYSQL}'@'localhost' IDENTIFIED BY '${_USER_MYSQL_PASS}';
-GRANT ALL PRIVILEGES ON *.* TO '${_USER_MYSQL}'@'localhost' WITH GRANT OPTION;
-CREATE USER IF NOT EXISTS '${_USER_MYSQL}'@'%' IDENTIFIED BY '${_USER_MYSQL_PASS}';
-GRANT ALL PRIVILEGES ON *.* TO '${_USER_MYSQL}'@'%' WITH GRANT OPTION;
-FLUSH PRIVILEGES;
-EOF
 
     # MySQL secure installation
     sudo mysql -u root <<EOF
@@ -2573,10 +2565,26 @@ DELETE FROM mysql.db WHERE Db='test' OR Db='test_%';
 FLUSH PRIVILEGES;
 EOF
 
+    # Start MySQL server
+    sudo systemctl start mysql
+
+    # Enable the database server starting after a reboot
+    sudo systemctl enable mysql
+
+    # Enable config at first install
     _CONFIG=true
+  else
+    if [[ "${_OPTS_MYSQL}" == " --" ]]; then
+      printf "  ✔ MySQL Server is already installed\n"
+      exit
+    fi
   fi
 
   if "${_CONFIG:-false}"; then
+    local _IP="$(hostname -I | awk '{print $1}')"
+    [[ "${_FORCE:-false}" ]] && local _IP="$(hostname -i)"
+    [ -d /home/vagrant ] && local _IP="$(hostname -I | awk '{print $2}')"
+
     # Create custom config file
     sudo bash -c "cat > /etc/mysql/my.cnf" <<MYSQLCONFIG
 #
@@ -2657,7 +2665,22 @@ MYSQLCONFIG
 
     # Restart service
     sudo systemctl restart mysql || _error "restarting MySQL"
-    printf"  ✔ MySQL Server is installed and configured"
+    printf "  ✔ MySQL Server is installed and configured\n"
+  fi
+
+  if "${_ADD_NEW_USER:-false}"; then
+    # Set name and password for new user
+    _USER_MYSQL="$(whiptail --inputbox "\nEnter a new username for MysQL:" 8 75 --title "Add New MySQL User" 3>&1 1>&2 2>&3)"
+    _USER_MYSQL_PASS="$(whiptail --passwordbox "\nEnter your password:" 8 78 --title "Add New MySQL User" 3>&1 1>&2 2>&3)"
+
+    # Add new MySQL user with root privileges
+    sudo mysql -u root <<EOF
+CREATE USER IF NOT EXISTS '${_USER_MYSQL}'@'localhost' IDENTIFIED BY '${_USER_MYSQL_PASS}';
+GRANT ALL PRIVILEGES ON *.* TO '${_USER_MYSQL}'@'localhost' WITH GRANT OPTION;
+CREATE USER IF NOT EXISTS '${_USER_MYSQL}'@'%' IDENTIFIED BY '${_USER_MYSQL_PASS}';
+GRANT ALL PRIVILEGES ON *.* TO '${_USER_MYSQL}'@'%' WITH GRANT OPTION;
+FLUSH PRIVILEGES;
+EOF
   fi
 
   if "${_BACKUP:-false}"; then
@@ -2665,6 +2688,14 @@ MYSQLCONFIG
     _USER_MYSQL="$(whiptail --inputbox "\nEnter the database username:" 8 75 --title "Backup Database" 3>&1 1>&2 2>&3)"
     _DB_NAME="$(whiptail --inputbox "\nEnter the database name:" 8 75 --title "Backup Database" 3>&1 1>&2 2>&3)"
     mysqldump -u ${_USER_MYSQL} -p ${_DB_NAME} --single-transaction --quick --lock-tables=false > $HOME/backup-${_DB_NAME}-$(LC_ALL=C date +%Y%m%d_%H%M%S).sql
+  fi
+
+  if "${_INFO:-false}"; then
+    # Show databases
+    sudo mysql -u root -e "SHOW DATABASES;"
+
+    # Show users
+    sudo mysql -u root -e  "SELECT User, Host, authentication_string FROM mysql.user;"
   fi
 }
 
