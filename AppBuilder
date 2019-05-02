@@ -1454,15 +1454,15 @@ cmd_nginx() {
     sudo chown -R nginx:root /var/cache/nginx/
     sudo chmod -R 700 /var/cache/nginx/
 
-    # Install required softwares
-    sudo apt install -y build-essential libssl-dev geoipupdate
-
     # Download GeoIP2 database
     if [[ $(dpkg-query -W --showformat='${Status}\n' libmaxminddb-dev 2>/dev/null | grep "install ok installed" &> /dev/null; echo $?) != 0 ]]; then
       sudo add-apt-repository ppa:maxmind/ppa -y
       sudo apt update -qq
       sudo apt install -y  libmaxminddb-dev
     fi
+
+    # Install required softwares
+    sudo apt install -y build-essential libssl-dev geoipupdate
 
     # Update or install GeoIP2 database
     if hash geoipupdate 2>/dev/null; then
