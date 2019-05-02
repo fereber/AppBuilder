@@ -2816,7 +2816,7 @@ EOF
       if [ ! -d "/tmp/phpMyAdmin-${_VER_PHP_MYADMIN}-english/" ]; then
         wget -qO- https://files.phpmyadmin.net/phpMyAdmin/${_VER_PHP_MYADMIN}/phpMyAdmin-${_VER_PHP_MYADMIN}-english.tar.gz -O /tmp/phpMyAdmin-${_VER_PHP_MYADMIN}-english.tar.gz
         tar -xvzf /tmp/phpMyAdmin-${_VER_PHP_MYADMIN}-english.tar.gz -C /tmp
-        sudo mv -f /tmp/phpMyAdmin-${_VER_PHP_MYADMIN}-english/ /usr/share/phpmyadmin/
+        sudo mv -f /tmp/phpMyAdmin-${_VER_PHP_MYADMIN}-english/* /usr/share/phpmyadmin/
       fi
 
       # Fix X-XSS-Protection duplicate error in console of Chrome
