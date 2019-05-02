@@ -4,7 +4,7 @@
 #
 # WARNING:
 # The installation works properly on a fresh install server,
-# if you already had installed something (Nginx, MySql or something else )
+# if you already had installed something (Nginx, MySql or something else)
 # the install script may not work, or causes unwanted things.
 
 _VERSION='1.0.0'
@@ -739,7 +739,7 @@ _menu_sub() {
   # Build a list
   _menu_checking_list "${@}"
   # Checklist
-  _CHECK_LIST=$(whiptail --title "${3}" --checklist "\n   Choose one or more apps to ${1}...\n\n   ✔ installed (sources)\n   ✖ not installed\n   ☠ non-favorite\n" \
+  _CHECK_LIST=$(whiptail --title "${3}" --checklist "\n   Choose one or more apps to ${1}...\n\n   ✔  installed (sources)\n   ✖ not installed\n   ☠ non-favorite\n" \
       --separate-output --cancel-button "Back to Main Menu" --ok-button "${4}" --notags \
       $LINES $COLUMNS $(( $LINES - 14 )) \
       "${_APP_LIST[@]}" \
@@ -1373,7 +1373,6 @@ cmd_nginx() {
   done
 
   if ! "${_FORCE:-false}"; then
-    printf "Please wait...\n"
     _check_desktop && printf "%b\n" "${_CHAS_MESSAGE}" && exit 1
   fi
 
@@ -1553,7 +1552,7 @@ NGINXUFW
       sudo cp /etc/nginx_backup_${_BACKUP_TIME:-}/conf.d/* /etc/nginx/conf.d/
     fi
 
-    printf "  ✔ Nginx is downloaded and installed.\n"
+    printf "  ✔  Nginx is downloaded and installed.\n"
     # Continue configurations...
     _CONFIG=true
   fi # ...end of Nginx server's downloading, updating or installing
@@ -2581,8 +2580,7 @@ EOF
     _CONFIG=true
   else
     if [[ "${_OPTS_MYSQL}" == " --" ]]; then
-      printf "  ✔ MySQL Server is already installed\n"
-      exit
+      printf "  ✔  MySQL Server is already installed\n"
     fi
   fi
 
@@ -2671,7 +2669,7 @@ MYSQLCONFIG
 
     # Restart service
     sudo systemctl restart mysql || _error "restarting MySQL"
-    printf "  ✔ MySQL Server is installed and configured\n"
+    printf "  ✔  MySQL Server is installed and configured\n"
   fi
 
   if "${_ADD_NEW_USER:-false}"; then
@@ -2717,8 +2715,8 @@ The \`php\` command installs PHP on system.
     -c, --config        Config Php <<PHPCONFIG...
                         and PhpMyAmin <<PHPMYADMINCONFIG...
     -h, --help          Display this help
-        --force         Enable running on desktop
         --debug         Run debug mode
+        --force         Enable running on desktop
 HELPHP
 )
 
@@ -2770,8 +2768,7 @@ cmd_php() {
     _CONFIG=true
   else
     if [[ "${_OPTS_PHP}" == " --" ]]; then
-      printf "  ✔ PHP is already installed\n"
-      exit
+      printf "  ✔  PHP is already installed\n"
     fi
   fi
 
@@ -2875,9 +2872,54 @@ PHPMYADMINCONFIG
     if hash nginx 2>/dev/null; then
       sudo systemctl restart nginx || _error "restarting Nginx after PHP settings"
     fi
-    printf "  ✔ PHP is installed and configured\n"
+    printf "  ✔  PHP is installed and configured\n"
   fi
 }
+
+# COMMAND: LEMP
+#
+_HELP[lemp]=$(cat << HELPODOO
+The \`lemp\` command buids a LEMP Stack with one command.
+
+The LEMP (Linux + Nginx + MySQL + PHP) stack is a useful, free, and open-source
+web stack for hosting web content in a Linux environment.
+
+  Usage:
+    $(basename "${0}") lemp
+
+  Options:
+    -h, --help          Display this help
+        --debug         Run debug mode
+        --force         Enable running on desktop
+HELPODOO
+)
+
+cmd_lemp() {
+  # Options parser
+  _OPTS_LEMP=$(getopt --options h --long help,debug,force --name "$(basename "${0}") ${_CMD}" -- "${@}")
+  if [ $? != 0 ] ; then _error "invalid option(s)" ; fi
+  eval set -- "${_OPTS_LEMP}"
+
+  while true ; do
+    case "${1}" in
+      -h|--help) cmd_help ${_CMD}; shift ;;
+      --debug) set -x ; _DEBUG=true ; shift ;;
+      --force) _FORCE=true ; shift ;;
+      --) shift ; break ;;
+      *) _error "internal option error '${1}'" ;;
+    esac
+  done
+
+  if ! "${_FORCE:-false}"; then
+    _check_desktop && printf "%b\n" "${_CHAS_MESSAGE}" && exit 1
+  fi
+
+  cmd_nginx
+  cmd_mysql
+  cmd_php
+  printf "  ✔  LEMP Stack is OK\n"
+}
+
 
 # COMMAND: Odoo
 #
