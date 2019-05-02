@@ -1464,7 +1464,7 @@ cmd_nginx() {
     # Update or install GeoIP2 database
     if hash geoipupdate 2>/dev/null; then
       if [ ! -f "/usr/share/GeoIP/.geoipupdate.lock" ]; then
-        (sudo geoipupdate) &
+        (sudo geoipupdate -d /usr/share/GeoIP/) &
         _spinner $! "Updating GeoIP database \`/usr/share/GeoIP\`.\nThis is going to take a few minutes."
       fi
     fi
@@ -1992,7 +1992,7 @@ NGINXSERVICE
       sudo systemctl start nginx.service || _error "install and starting Nginx -- 'sysremctl'"
       # sudo ln -sf /lib/systemd/system/nginx.service /etc/systemd/system/multi-user.target.wants/
       printf "  ✔  Starting Nginx is OK\n"
-      [ -d /home/vagrant ] && printf " ⇢  Default server: $(tput setaf 3)http://%s$(tput sgr0)\n" "${_IP}"
+      [ -d /home/vagrant ] && printf "  ⇢  Default server: $(tput setaf 3)http://%s$(tput sgr0)\n" "${_IP}"
     else
       # Check if Nginx will automatically initiate after a reboot:
       if [[ $(systemctl is-enabled nginx.service) != "enabled" ]]; then
