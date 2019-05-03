@@ -648,7 +648,9 @@ cmd_menu(){
         "cmd_php" "  Php" \
         "cmd_odoo" "  Odoo" \
         "cmd_menu" "" \
-        "_nginx_block" "Nginx Server Block" \
+        "cmd_menu" "Settings:" \
+        "_nginx_block" "  Nginx Server Block" \
+        "_menu_purge_cache" "  Purge FastCGI Cache" \
       3>&1 1>&2 2>&3)
   fi
   if [ $? = 0 ]; then
@@ -2213,7 +2215,7 @@ server {
 HTTPSSERVERBLOCK
       fi # ...end if $_SSL true
 
-      # Add Block: Log and chache config
+      # Add Block: Log and cache config
       #
       sudo bash -c "cat >> /etc/nginx/conf.d/${_SUB}${_DOMAIN}.conf" <<LOGBLOCK
     ##
@@ -2586,6 +2588,40 @@ _nginx_block() {
 
   cmd_nginx  ${_SSL_SET} --type=${_BLOCK_TYPE_SELECTION} ${_ROOT_PATH_SET} ${_DOMAIN_SET}
 
+}
+
+# Whiptail: Purge FasCGI cache
+#
+_menu_purge_cache() {
+  _dimension
+  unset _ENABLED_BLOCK
+  for _FILENAME in /etc/nginx/conf.d/*.conf; do
+    if [[ "${_FILENAME}" != "/etc/nginx/conf.d/default.conf" ]]; then
+      _DOMAIN_NAME="${_FILENAME##*/}"
+      _ENABLED_BLOCK+=("${_DOMAIN_NAME::-5}" "" OF)
+    fi
+  done
+
+  _PURGE_CHACHE_LIST=$(whiptail --title "FasCGI Cache" --checklist "\n   Choose one or more domain to purge cache\n" \
+      --separate-output --cancel-button "Back to Main Menu" --ok-button "Purge Cache" \
+      $LINES $COLUMNS $(( $LINES - 14 )) \
+      "${_ENABLED_BLOCK[@]}" \
+    3>&1 1>&2 2>&3)
+
+  if [ ${?} = 0 ]; then
+    if [[ -z "${_PURGE_CHACHE_LIST[@]}" ]]; then
+      whiptail --title "Info" --yes-button "Back" --no-button "Quit" --yesno "Nothing selected, so nothing happened!" 7 45 || exit
+      _menu_purge_cache
+    else
+      for _SELECTED in "${_PURGE_CHACHE_LIST[@]}"; do
+        sudo rm -rf /var/www/$_SELECTED/cache/*
+      done
+      whiptail --title "Success" --yes-button "Back to Menu" --no-button "Quit" --yesno "The FastCGI Cache has been purged." 7 53 || exit
+      cmd_menu
+    fi
+  else
+    cmd_menu
+  fi
 }
 
 # COMMAND: MySQL
