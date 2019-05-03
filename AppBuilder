@@ -1347,6 +1347,7 @@ HELPNGINX
 
 # Note:
 #   * Clear https in Chrome: chrome://net-internals/#hsts
+#   * Import certificate:    chrome://settings/certificates
 
 cmd_nginx() {
 
@@ -1999,7 +2000,7 @@ NGINXSERVICE
       sudo systemctl start nginx.service || _error "install and starting Nginx -- 'sysremctl'"
       # sudo ln -sf /lib/systemd/system/nginx.service /etc/systemd/system/multi-user.target.wants/
       printf "  ✔  Starting Nginx is OK\n"
-      [ -d /home/vagrant ] && printf "  ⇢  Default server: $(tput setaf 3)http://%s$(tput sgr0)\n" "${_IP}"
+      [ -d /home/vagrant ] && printf "  ⇢  Default server: $(tput setaf 4)http://%s$(tput sgr0)\n" "${_IP}"
     else
       # Check if Nginx will automatically initiate after a reboot:
       if [[ $(systemctl is-enabled nginx.service) != "enabled" ]]; then
@@ -2007,7 +2008,7 @@ NGINXSERVICE
       fi
       sudo nginx -s reload || _error "configure and reloading Nginx"
       printf "  ✔  Nginx Reloading is OK\n"
-      [ -d /home/vagrant ] && printf "  ⇢  Default server: $(tput setaf 3)http://%s$(tput sgr0)\n" "${_IP}"
+      [ -d /home/vagrant ] && printf "  ⇢  Default server: $(tput setaf 4)http://%s$(tput sgr0)\n" "${_IP}"
     fi
   fi # ..end of server configure
 
@@ -2420,7 +2421,7 @@ FASTCGICACHEPATH
       fi
 
       [[ "${_DOMAIN}" == "${_THIS_HOST}" ]] && _DOMAIN=${_IP}
-      printf "\n  Open up your web browser and navigate to following url:\n  ⇢  $(tput setaf 3)%s://%s$(tput sgr0)\n" "${_SCHEME}" "${_SUB}${_DOMAIN}"
+      printf "\n  Open up your web browser and navigate to following url:\n  ⇢  $(tput setaf 4)%s://%s$(tput sgr0)\n" "${_SCHEME}" "${_SUB}${_DOMAIN}"
 
 
     else # ... end if confirmation is YES
@@ -2493,11 +2494,13 @@ _ssl_certificate() {
     else
       _HOST_CONTENT="${_IP} ${_DOMAIN} www.${_DOMAIN}"
     fi
-    printf "\n  Don't forget, if you are used Vagrantbox:\n"
+    printf "\n  Don't forget, if you are used Vagrantbox:\n\n"
     printf "  - add this entry to your \`/etc/hosts\` file (on host):\n    $(tput setaf 3)%s$(tput sgr0)\n" "${_HOST_CONTENT}"
 
     if "${_SSL:-false}"; then
-      printf "  - import the \`../${_SUB}${_DOMAIN}/letsencrypt/%s-local-fullchain.crt\` file\n    to the Chrome web browser\n" "${_DOMAIN}"
+      printf "  - go to ⇢  $(tput setaf 4)chrome://settings/certificates$(tput sgr0) and import the\n"
+      printf "    \`../${_SUB}${_DOMAIN}/letsencrypt/%s-local-fullchain.crt\`\n    file to the Chrome* web browser\n" "${_DOMAIN}"
+      printf "    $(tput sitm)$(tput setaf 244)* Chrome supports the self signed certificates$(tput sgr0)\n"
     fi
 
   else
@@ -3288,7 +3291,7 @@ ODOOINIT
     # sudo -H pip3 install odoo${_ODOO_BRANCH}-addon-web-data-protection odoo-autodiscover
   fi
 
-  printf "  Open a new browser window and visit the address:\n  ⇢ $(tput setaf 3)http://%s:8069$(tput sgr0)\n" "${_IP}"
+  printf "  Open a new browser window and visit the address:\n  ⇢ $(tput setaf 4)http://%s:8069$(tput sgr0)\n" "${_IP}"
   printf "\nTIP:\n  Adding or changing a server block are used\n  \`nginx --type=odoo\` command option.\n"
 }
 
