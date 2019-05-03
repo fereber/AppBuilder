@@ -647,6 +647,8 @@ cmd_menu(){
         "cmd_mysql" "  MySQL" \
         "cmd_php" "  Php" \
         "cmd_odoo" "  Odoo" \
+        "cmd_menu" "" \
+        "_nginx_block" "Nginx Server Block" \
       3>&1 1>&2 2>&3)
   fi
   if [ $? = 0 ]; then
@@ -2037,12 +2039,19 @@ NGINXSERVICE
     fi
 
     # Confirmation
-    printf "\nCreating / Updating a Server Block for %s\n" "${_SUB}${_DOMAIN}"
-    printf "  - domain:        %s\n" "${_SUB}${_DOMAIN}"
-    printf "  - root path:     %s\n" "${_ROOT_PATH}"
-    printf "  - cache path:    %s\n" "${_CACHE_PATH}"
-    printf "  - ssl:           %s\n" "${_SSL:-false}"
-    printf "  - type:          %s\n" "${_BLOCK_TYPE:-basic}"
+    printf "\nCreating or updating a Nginx server block for %s\n\n" "${_SUB}${_DOMAIN}"
+    printf "  - domain:              %s\n" "${_SUB}${_DOMAIN}"
+    printf "  - type:                %s\n" "${_BLOCK_TYPE:-basic}"
+    printf "  - root path:           %s\n" "${_ROOT_PATH}"
+    printf "  - ssl:                 %s\n" "${_SSL:-false}"
+    if "${_SSL:-false}"; then
+      printf "  - certificate path:    /etc/letsencrypt/live/%s\n" "${_DOMAIN}"
+      if [ ! -d "/home/vagrant" ]; then
+        printf "  - certbot path:        %s/.well-known/acme-challenge\n" "${_LETSENCRYPT_PATH}"
+      fi
+    fi
+    printf "  - cache path*:         %s\n\n" "${_CACHE_PATH}"
+    printf "$(tput sitm)$(tput setaf 244)  * cache path is used only if the block type is 'fastcgi'$(tput sgr0)\n\n"
     read -p "Are you sure? [y/n] " REPLY
 
     if [[ "${REPLY:-}" =~ ^[Yy]$ ]]; then
@@ -2519,6 +2528,64 @@ _ssl_certificate() {
     # Message
     printf "Creating Let’s Encrypt certificate for https://%s is done\n" "${_SUB}${_DOMAIN}"
   fi
+}
+
+# Nginx block - Helper function for 'Nginx Server Block' whiptail menu
+#
+_nginx_block() {
+  _SUB_SELECTION=$( whiptail --notags --title "Nginx Server Block" --radiolist "\nDo you want to manage a sub or main domain?" 10 65 2 \
+      "false" "Main domain" ON \
+      "true" "Sub domain" OFF \
+    3>&1 1>&2 2>&3)
+  [[ $? == 1 ]] && exit
+  if "${_SUB_SELECTION}"; then
+    _DOMAIN="$(whiptail --inputbox "\nEnter the main domain name (example.loc):" 8 75 --title "Nginx Server Block" 3>&1 1>&2 2>&3)"
+    [[ $? == 1 ]] && exit
+    _SUB_ALIAS="$(whiptail --inputbox "\nEnter the subdomain alias:" 8 75 --title "Nginx Server Block" 3>&1 1>&2 2>&3)"
+    [[ $? == 1 ]] && exit
+    _SUB_SET="--sub ${_SUB_ALIAS}"
+  else
+    _DOMAIN="$(whiptail --inputbox "\nEnter the domain name (example.loc):" 8 75 --title "Nginx Server Block" 3>&1 1>&2 2>&3)"
+    [[ $? == 1 ]] && exit
+    _SUB_SET=""
+  fi
+
+  if [ "${_DOMAIN}" != "" ]; then
+    _DOMAIN_SET="--block ${_DOMAIN}"
+  else
+    _DOMAIN_SET="--block"
+  fi
+
+  _SSL_SELECTION=$( whiptail --notags --title "Nginx Server Block" --radiolist "\nDo you want to enable TLS for HTTPS connections?" 10 65 2 \
+      "false" "No" ON \
+      "true" "Yes (http2, TLSv1.3, TLSv1.2 and HSTS)" OFF \
+    3>&1 1>&2 2>&3)
+  [[ $? == 1 ]] && exit
+  if "${_SSL_SELECTION}"; then
+    _SSL_SET="--ssl"
+  else
+    _SSL_SET=""
+  fi
+
+  _BLOCK_TYPE_SELECTION=$( whiptail --notags --title "Nginx Server Block" --radiolist "\nWhat type of block do you want?" 14 65 5 \
+      "basic" "Basic" ON \
+      "php" "Php" OFF \
+      "fastcgi" "Php FastCGI" OFF \
+      "odoo" "Odoo" OFF \
+      "nodejs" "Node.JS" OFF \
+    3>&1 1>&2 2>&3)
+  [[ $? == 1 ]] && exit
+
+  _ROOT_PATH="$(whiptail --inputbox "\nEnter the custom root path /var/www: /your custom path\nLeave empty if you want to use default (/var/www/<domain name>)." 10 75 --title "Nginx Block: Root Path" 3>&1 1>&2 2>&3)"
+  [[ $? == 1 ]] && exit
+  if [ "${_ROOT_PATH}" != "" ]; then
+    _ROOT_PATH_SET="--root ${_ROOT_PATH}"
+  else
+    _ROOT_PATH_SET=""
+  fi
+
+  cmd_nginx  ${_SSL_SET} --type=${_BLOCK_TYPE_SELECTION} ${_ROOT_PATH_SET} ${_DOMAIN_SET}
+
 }
 
 # COMMAND: MySQL
