@@ -489,7 +489,7 @@ _main() {
   _check_os_and_distro
   _check_dependencies
   _check_timezone
-  _check_git_config
+  _check_desktop &&  _check_git_config
   # Load allowed command
   _get_command_functions
 
