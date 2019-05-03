@@ -804,7 +804,7 @@ _system_update() {
   # Refresh repository...
   printf "Please wait... "
   if hash flatpak 2>/dev/null; then
-    flatpak update
+    flatpak update -y
   fi
   sudo apt update -qq
 
