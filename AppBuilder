@@ -1477,6 +1477,21 @@ cmd_nginx() {
       fi
     fi
 
+    # Install MailCatcher and dependencies
+    if [ -d "/home/vagrant" ]; then
+      if ! hash mailcatcher 2>/dev/null; then
+        sudo apt -y install libsqlite3-dev ruby-dev
+        sudo gem install mailcatcher --no-ri --no-rdoc
+        # Starting
+        /usr/bin/env $(which mailcatcher) --ip=0.0.0.0
+        # Starting on boot
+        sudo bash -c 'echo "@reboot root $(which mailcatcher) --ip=0.0.0.0" >> /etc/crontab'
+        sudo update-rc.d cron defaults
+      fi
+      # Allow UFW for MailCatcher
+      sudo ufw allow 1080 comment 'MailCatcher' &>/dev/null
+    fi
+
     # You can verify compiler support for __uint128_t with the following
     # https://wiki.openssl.org/index.php/Compilation_and_Installation
     if gcc -dM -E - </dev/null | grep __SIZEOF_INT128__  ; 	then _ENABLE_EC="enable-ec_nistp_64_gcc_128"; else _ENABLE_EC=""; fi
@@ -2413,16 +2428,14 @@ FASTCGICACHEPATH
         _SCHEME="http"
       fi
 
+      [[ "${_DOMAIN}" == "${_THIS_HOST}" ]] && _DOMAIN=${_IP}
+      printf "\n  Open up your web browser and navigate to following url:\n  ⇢  $(tput setaf 4)%s://%s$(tput sgr0)\n" "${_SCHEME}" "${_SUB}${_DOMAIN}"
       if [ -d "/home/vagrant" ]; then
         # Info if MailCatcher running (Set your favourite app to deliver to local smtp://127.0.0.1:1025 instead of your default SMTP server.)
         if hash mailcatcher 2>/dev/null; then
-          printf "  - check out http://%s:1080 to see the mail(s)\n" "${_IP}"
+          printf "  Check out and test your e-mail(s) here:\n  ⇢  $(tput setaf 4)http://%s:1080$(tput sgr0)\n" "${_IP}"
         fi
       fi
-
-      [[ "${_DOMAIN}" == "${_THIS_HOST}" ]] && _DOMAIN=${_IP}
-      printf "\n  Open up your web browser and navigate to following url:\n  ⇢  $(tput setaf 4)%s://%s$(tput sgr0)\n" "${_SCHEME}" "${_SUB}${_DOMAIN}"
-
 
     else # ... end if confirmation is YES
       printf "Exiting...\n"
