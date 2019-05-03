@@ -2073,12 +2073,12 @@ NGINXSERVICE
     <head>
         <meta charset="utf-8">
         <meta name="viewport" content="width=device-width, initial-scale=1">
-        <title>Welcome to ${_DOMAIN}</title>
-        <meta name="description" content="Welcome to ${_DOMAIN}">
+        <title>Welcome to ${_SUB}${_DOMAIN}</title>
+        <meta name="description" content="Welcome to ${_SUB}${_DOMAIN}">
         <style>.center{text-align: center!important;}</style>
     </head>
     <body>
-        <p class="center">Welcome to ${_DOMAIN}</p>
+        <p class="center">Welcome to ${_SUB}${_DOMAIN}</p>
     </body>
 </html>
 INDEXHTML
@@ -2586,7 +2586,7 @@ _nginx_block() {
     _ROOT_PATH_SET=""
   fi
 
-  cmd_nginx  ${_SSL_SET} --type=${_BLOCK_TYPE_SELECTION} ${_ROOT_PATH_SET} ${_DOMAIN_SET}
+  cmd_nginx  ${_SSL_SET} --type=${_BLOCK_TYPE_SELECTION} ${_SUB_SET} ${_ROOT_PATH_SET} ${_DOMAIN_SET}
 
 }
 
