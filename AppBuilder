@@ -871,7 +871,6 @@ _system_settings() {
 
   # Gsettings
   gsettings set org.gnome.desktop.interface clock-format 24h
-  gsettings set org.gnome.Terminal.Legacy.Settings theme-variant 'dark'
   # gsettings set org.gnome.shell enabled-extensions "['apps-menu@gnome-shell-extensions.gcampax.github.com', 'ubuntu-dock@ubuntu.com', 'ubuntu-appindicators@ubuntu.com', 'alternate-tab@gnome-shell-extensions.gcampax.github.com', 'auto-move-windows@gnome-shell-extensions.gcampax.github.com', 'launch-new-instance@gnome-shell-extensions.gcampax.github.com', 'places-menu@gnome-shell-extensions.gcampax.github.com', 'drive-menu@gnome-shell-extensions.gcampax.github.com', 'screenshot-window-sizer@gnome-shell-extensions.gcampax.github.com']"
   gsettings set org.gnome.shell.extensions.dash-to-dock show-apps-at-top true
   gsettings set org.gnome.shell.extensions.dash-to-dock dock-position 'LEFT'
@@ -881,7 +880,9 @@ _system_settings() {
   gsettings set org.gnome.shell.extensions.dash-to-dock custom-theme-running-dots-color '#dddddd'
   gsettings set org.gnome.nautilus.preferences default-folder-viewer 'list-view'
   gsettings set org.gnome.desktop.interface clock-show-date true
+  # Atom issue: https://github.com/atom/atom/issues/18535
   gsettings set org.gnome.desktop.interface gtk-theme 'Adwaita'
+  gsettings set org.gnome.Terminal.Legacy.Settings theme-variant 'dark'
 
   # Disabling crash dialogs
   if [[ $(cat '/etc/default/apport' | grep -q 'enabled=0'; echo $?) != 0 ]]; then
