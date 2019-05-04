@@ -1089,7 +1089,7 @@ cmd_install() {
           _SCRIPT_MESSAGES+=("There is something wrong with the installation of \`${_PACK}\`.")
         fi
         shift ;;
-      --d|-deb) _DEB_ARGS=${2}
+      --d|--deb) _DEB_ARGS=${2}
         if [[ $(_check_package_exists "${_PACK}") != 0 ]]; then
           wget ${_DEB_ARGS} -O /tmp/${_PACK}.deb
           if [[ "${?}" -ne 0 ]]; then
