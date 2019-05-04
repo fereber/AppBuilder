@@ -1026,7 +1026,7 @@ _install_anki() {
 #
 _setting_app() {
   if _contains "atom" "${_APP_SETTING[@]}"; then
-    if [ -! -d "${HOME}/.atom/packages/atom-beautify/" ]; then
+    if [ ! -d "${HOME}/.atom/packages/atom-beautify/" ]; then
       pip3 install beautysh
       apm install atom-beautify
     fi
