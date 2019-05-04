@@ -1071,7 +1071,7 @@ cmd_install() {
 
   _PACK="" # (required) --app option argument
   _APP_SETTING=() # Settings into array variable
-
+  eval set -- "${@}"
   # Options parser
   _OPTS_INSTALL=$(getopt --options ha:pr:k:d:s::f: --long help,app:,pack,repo:,key:,deb:,snap::,flat:,appimg:,ppa:,set:,fun: --name "$(basename "${0}") ${_CMD}" -- "${@}")
   if [ $? != 0 ] ; then _error "invalid option(s)" ; fi
