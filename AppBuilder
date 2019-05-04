@@ -824,6 +824,7 @@ _system_update() {
 _script_update() {
   wget -qO- https://raw.githubusercontent.com/fereber/AppBuilder/master/AppBuilder -O $(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/$(basename "$0")
   chmod +x $(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/$(basename "$0")
+  echo "" >> $(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/$(basename "$0")
 }
 
 # System cleaning
