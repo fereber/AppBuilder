@@ -630,7 +630,7 @@ cmd_menu(){
         "cmd_menu" "" \
         "cmd_menu" "Settings:" \
         "_menu_show_desc" "  Show App Info" \
-        "sudo update-alternatives --config java" "  Config Java" \
+        "_java_settings" "  Config Java" \
         "_system_settings" "  Setting System" \
       3>&1 1>&2 2>&3)
   else
@@ -892,6 +892,22 @@ _system_settings() {
   # Return to menu
   # whiptail --title "Success" --msgbox "The desktop has been configured." 7 40
   # cmd_menu
+}
+
+# Configure Java
+#
+_java_settings() {
+  if hash java 2>/dev/null; then
+    sudo update-alternatives --config java
+  else
+    printf "Java is not  installed on the system yet.\n"
+    read -p "Do you want me to update? [y/n] " REPLY
+    if [[ "${REPLY:-}" =~ ^[Yy]$ ]]; then
+      sudo apt install -y default-jre default-jdk openjdk-8-jdk
+    else
+      cmd_menu
+    fi
+  fi
 }
 
 # Display error information (\`dmesg\`)
