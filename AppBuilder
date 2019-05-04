@@ -1235,11 +1235,11 @@ cmd_remove() {
         sudo apt-get remove -y "${_PACK}"
       fi
       if [[ "$(_check_package_exists --print-status "${_PACK}")" == *"snap"* ]]; then
-        sudo snap remove "${_PACK}"
+        snap remove "${_PACK}"
       fi
       if [[ "$(_check_package_exists --print-status "${_PACK}")" == *"flat"* ]]; then
-        _FLATPAK_PACK=$(flatpak list --app | grep "${_PACK}" | cut -d/ -f1)
-        sudo flatpak uninstall --assumeyes "${_FLATPAK_PACK}"
+        _FLATPAK_PACK=$(flatpak list --app --columns=application | grep "${_PACK}")
+         flatpak uninstall -y "${_FLATPAK_PACK}"
       fi
       if [[ "$(_check_package_exists --print-status "${_PACK}")" == *"complied"* ]]; then
         _SCRIPT_MESSAGES+=("☹ Sorry, '${_PACK}' package can remove manually only.")
