@@ -436,7 +436,7 @@ _check_package_exists() {
 #
 _check_dependencies() {
   local _MISSING_PACK=();
-  for _REQ_PACK in whiptail wget curl git; do
+  for _REQ_PACK in whiptail wget; do
     if ! hash "${_REQ_PACK}" 2>/dev/null; then
       _MISSING_PACK+=("${_REQ_PACK}")
     fi
@@ -940,7 +940,7 @@ DESKTOPFILE
 _install_virtualbox() {
   if hash virtualbox 2>/dev/null; then
     _VER_CUR_VBOX="$(vboxmanage -v | cut -d 'r' -f1)"
-    _VER_LAT_VBOX="$(curl -s https://download.virtualbox.org/virtualbox/LATEST.TXT)"
+    _VER_LAT_VBOX="$(wget -qO- https://download.virtualbox.org/virtualbox/LATEST.TXT)"
     _VER_LAT_VBOX_REPO="$(dpkg-query -W --showformat='${Version}' virtualbox* | cut -d- -f1)"
     if _check_version ${_VER_LAT_VBOX_REPO} ${_VER_CUR_VBOX}; then
       printf "A new version of the VirtualBox (%s) is available!\n" "${_VER_LAT_VBOX}"
@@ -3092,7 +3092,8 @@ cmd_odoo() {
     # Install dependencies
     sudo apt -y install python3-pip postgresql \
       node-clean-css node-less \
-      libxml2-dev libxslt1-dev libevent-dev libsasl2-dev libldap2-dev
+      libxml2-dev libxslt1-dev libevent-dev libsasl2-dev libldap2-dev \
+      git
 
     # Create odoo user
     if ! sudo su - postgres -c "psql -c '\du'" | grep odoo > /dev/null; then
