@@ -28,4 +28,7 @@ The AppBuilder is a post install script to help building and setting your system
 
 > WARNING: The installation works properly on a fresh install server, if you already had installed something (Nginx, MySql or something else ) the install script may not work, or causes unwanted things.
 
-_\* Tested on Ubuntu 18.04+_
+#### _Tested on_
+
+-   _Ubuntu Desktop 19.04_
+-   _Ubuntu Server 18.04.2 LTS_
