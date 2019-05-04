@@ -1100,14 +1100,12 @@ cmd_install() {
         fi
         shift 2 ;;
       -r|--repo) _REPO_ARGS=${2}
-        if [[ ! -f "/etc/apt/sources.list.d/${_PACK}.list" ]]; then
-          echo "${_REPO_ARGS}" | sudo tee /etc/apt/sources.list.d/${_PACK}.list
-        fi
+        echo "${_REPO_ARGS}" | sudo tee /etc/apt/sources.list.d/${_PACK}.list
         shift 2 ;;
       -k|--key) _KEY_ARGS=${2}
         wget -q "${_KEY_ARGS}" -O- | sudo apt-key add -
         sudo apt update -qq
-        cmd_install --pack ${_PACK}
+        sudo apt install -y ${_PACK}
         shift 2 ;;
       -s|--snap) _SNAP_ARGS=${2}
         if [[ $(_check_package_exists "snapd") != 0 ]]; then
