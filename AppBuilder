@@ -96,7 +96,7 @@ _APP_ADVANCED+=( python3-pip )                   ; _APP_INSTALL[python3-pip]="--
 _APP_ADVANCED+=( virtualbox )                    ; _APP_INSTALL[virtualbox]="--fun _install_virtualbox"
 _APP_ADVANCED+=( vagrant )                       ; _APP_INSTALL[vagrant]="--fun _install_vagrant"
 _APP_ADVANCED+=( poedit )                        ; _APP_INSTALL[poedit]="--pack"
-_APP_ADVANCED+=( atom )                          ; _APP_INSTALL[atom]="--set atom --snap --classic"
+_APP_ADVANCED+=( atom )                          ; _APP_INSTALL[atom]="--set atom --snap=--classic"
 _APP_ADVANCED+=( sublimetext )                   ; _APP_INSTALL[sublimetext]="--flat com.sublimetext.three"
 _APP_ADVANCED+=( gnome-builder )                 ; _APP_INSTALL[gnome-builder]="--pack" # + sysprof
 _APP_ADVANCED+=( filezilla )                     ; _APP_INSTALL[filezilla]="--pack"
@@ -1027,6 +1027,7 @@ _install_anki() {
 _setting_app() {
   if _contains "atom" "${_APP_SETTING[@]}"; then
     if [ ! -d "${HOME}/.atom/packages/atom-beautify/" ]; then
+      sudo apt install -y python3-pip
       pip3 install beautysh
       apm install atom-beautify
     fi
@@ -1071,7 +1072,7 @@ cmd_install() {
   _APP_SETTING=() # Settings into array variable
 
   # Options parser
-  _OPTS_INSTALL=$(getopt --options ha:pr:k:d:s::f: --long help,app:,pack,repo:,key:,deb:,snap::,flat:,appimg:,ppa:,set:,fun:,classic --name "$(basename "${0}") ${_CMD}" -- "${@}")
+  _OPTS_INSTALL=$(getopt --options ha:pr:k:d:s::f: --long help,app:,pack,repo:,key:,deb:,snap::,flat:,appimg:,ppa:,set:,fun: --name "$(basename "${0}") ${_CMD}" -- "${@}")
   if [ $? != 0 ] ; then _error "invalid option(s)" ; fi
   eval set -- "${_OPTS_INSTALL}"
 
@@ -1116,9 +1117,6 @@ cmd_install() {
           _SCRIPT_MESSAGES+=("There is something wrong with the installation of \`${_PACK}\`.")
         fi
         shift 2 ;;
-      --classic)
-        # This option (classic) is only a snap hack, so it can be use as an install argument...
-        shift ;;
       -f|--flat) _FLAT_ARGS=${2}
         if [[ $(_check_package_exists "flatpak") != 0 ]]; then
           sudo apt install -y flatpak gnome-software-plugin-flatpak
