@@ -1229,8 +1229,6 @@ cmd_remove() {
         _SCRIPT_MESSAGES+=("☹ Sorry, '${_PACK}' package can remove manually only.")
       fi
     fi
-    # Run system cleanup
-    _system_cleanup
   fi
 }
 
