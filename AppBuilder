@@ -3017,7 +3017,7 @@ PHPMYADMINCONFIG
 
 # COMMAND: LEMP
 #
-_HELP[lemp]=$(cat << HELPODOO
+_HELP[lemp]=$(cat << HELPLEMP
 The \`lemp\` command buids a LEMP Stack with one command.
 
 The LEMP (Linux + Nginx + MySQL + PHP) stack is a useful, free, and open-source
@@ -3030,7 +3030,7 @@ web stack for hosting web content in a Linux environment.
     -h, --help          Display this help
         --debug         Run debug mode
         --force         Enable running on desktop
-HELPODOO
+HELPLEMP
 )
 
 cmd_lemp() {
