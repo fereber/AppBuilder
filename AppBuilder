@@ -146,19 +146,21 @@ _APP_CODEC+=( libdvd-pkg )                       ; _APP_INSTALL[libdvd-pkg]="--p
 # |   and not present on 'non-favorite list' |    | unchecked       | unchecked      |
 # |------------------------------------------|----|-----------------|----------------|
 #
-_APP_NON_FAVORITE+=( ubuntu-web-launchers )      ; _APP_INSTALL[ubuntu-web-launchers]="--pack"
-_APP_NON_FAVORITE+=( gnome-characters )          ; _APP_INSTALL[gnome-characters]="--snap" # prefer main source to snap
-_APP_NON_FAVORITE+=( gnome-logs )                ; _APP_INSTALL[gnome-logs]="--snap" # prefer main source to snap
-_APP_NON_FAVORITE+=( gnome-system-monitor )      ; _APP_INSTALL[gnome-system-monitor]="--snap" # prefer main source to snap
-_APP_NON_FAVORITE+=( gnome-builder )             ; _APP_INSTALL[gnome-builder]="--pack"
-_APP_NON_FAVORITE+=( bijiben )                   ; _APP_INSTALL[bijiben]="--pack"
-_APP_NON_FAVORITE+=( libdvd-pkg )                ; _APP_INSTALL[libdvd-pkg]="--pack"
-_APP_NON_FAVORITE+=( transmission )              ; _APP_INSTALL[transmission]="--pack"
-_APP_NON_FAVORITE+=( vlc )                       ; _APP_INSTALL[vlc]="--pack"
-_APP_NON_FAVORITE+=( epiphany-browser )          ; _APP_INSTALL[epiphany-browser]="--pack"
-_APP_NON_FAVORITE+=( shotwell )                  ; _APP_INSTALL[shotwell]="--pack"
-_APP_NON_FAVORITE+=( rhythmbox )                 ; _APP_INSTALL[rhythmbox]="--pack"
-_APP_NON_FAVORITE+=( ubuntu-web-launchers )      ; _APP_INSTALL[ubuntu-web-launchers]="--pack"
+_APP_NON_FAVORITE=(
+  ubuntu-web-launchers
+  gnome-characters
+  gnome-logs
+  gnome-system-monitor
+  gnome-builder
+  gnome-documents
+  bijiben
+  libdvd-pkg
+  transmission
+  epiphany-browser
+  shotwell
+  rhythmbox
+  ubuntu-web-launchers
+)
 
 # Print short description of package (default value is disable, as it slow down the script)
 _SHOW_DESC=${_SHOW_DESC:-0}
