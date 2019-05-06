@@ -171,7 +171,7 @@ _SCRIPT_MESSAGES=()
 # Return:
 #   Dialog box with custom colours
 #
-export NEWT_COLORS="root=,black window=,lightgray title=black, button=lightgray,black actbutton=black,lightgray checkbox=black,lightgray actcheckbox=lightgray,black listbox=black,lightgray actlistbox=lightgray,black sellistbox=black,lightgray actsellistbox=lightgray,gray textbox=black,lightgray acttextbox=lightgray,black border= shadow= entry= label= helpline= roottext= emptyscale= fullscale= disentry= compactbutton= "
+export NEWT_COLORS="checkbox=black,lightgray"
 
 # Whiptail: Set right dimensions for your whiptail dialog box (without xterm resizing!)
 #
