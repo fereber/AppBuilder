@@ -1294,7 +1294,7 @@ cmd_vagrant() {
   if ! "${_VAGRANT:-false}"; then
     _error "missing required option -- 'path'"
   else
-    [ ! -d "${_PATH}" ] && printf  "No such directory - '%s'\n" "${_PATH}"
+    [ ! -d "${_PATH}" ] && _error  "No such directory - '${_PATH}'"
     if [ ! -f "${_PATH}/Vagrantfile" ]; then
       # Create a Vagrantfile to the $PATH directory
       cat > ${_PATH}/Vagrantfile <<VRAGANTFILE
