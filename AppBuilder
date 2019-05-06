@@ -119,7 +119,6 @@ _APP_GAME+=( gnome-mines )                       ; _APP_INSTALL[gnome-mines]="--
 
 # Codecs App List
 _APP_CODEC+=( ubuntu-restricted-extras )         ; _APP_INSTALL[ubuntu-restricted-extras]="--pack"
-_APP_CODEC+=( libavcodec-extra )                 ; _APP_INSTALL[libavcodec-extra]="--pack"
 _APP_CODEC+=( libdvdnav4 )                       ; _APP_INSTALL[libdvdnav4]="--pack"
 _APP_CODEC+=( libdvdread4 )                      ; _APP_INSTALL[libdvdread4]="--pack"
 _APP_CODEC+=( gstreamer1.0-plugins-bad )         ; _APP_INSTALL[gstreamer1.0-plugins-bad]="--pack"
