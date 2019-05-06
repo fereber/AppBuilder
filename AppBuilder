@@ -967,7 +967,7 @@ _install_virtualbox() {
       fi
     fi
   else
-    _REPLY=y
+    REPLY=y
   fi
   # Install VirtualBox
   if [[ "${REPLY:-}" =~ ^[Yy]$ ]]; then
@@ -983,24 +983,27 @@ VBOXLIST
     sudo apt -y install virtualbox-6.0
   fi
   # VirtualBox Extension Pack (syncing with current version of VirtualBox)
-  _VER_USED_VBOXREV="$(vboxmanage list extpacks | tr -s ' ' | grep Revision | awk '{ print $2 }')"
-  _VER_CUR_VBOXREV="$(vboxmanage -v | cut -d 'r' -f2)"
-  if [ "${_VER_USED_VBOXREV}" != "${_VER_CUR_VBOXREV}" ]; then
-    _VBOB_LICENSE_KEY="56be48f923303c8cababb0bb4c478284b688ed23f16d775d729b89a2e8e5f9eb"
-    if [ ! -f "/tmp/Oracle_VM_VirtualBox_Extension_Pack-${_VER_CUR_VBOX}.vbox-extpack" ]; then
-      wget https://download.virtualbox.org/virtualbox/${_VER_CUR_VBOX}/Oracle_VM_VirtualBox_Extension_Pack-${_VER_CUR_VBOX}.vbox-extpack -O /tmp/Oracle_VM_VirtualBox_Extension_Pack-${_VER_CUR_VBOX}.vbox-extpack
+  if hash vboxmanage 2>/dev/null; then
+    _VER_USED_VBOXREV="$(vboxmanage list extpacks | tr -s ' ' | grep Revision | awk '{ print $2 }')"
+    _VER_CUR_VBOXREV="$(vboxmanage -v | cut -d 'r' -f2)"
+    if [ "${_VER_USED_VBOXREV}" != "${_VER_CUR_VBOXREV}" ]; then
+      _VBOB_LICENSE_KEY="56be48f923303c8cababb0bb4c478284b688ed23f16d775d729b89a2e8e5f9eb"
+      if [ ! -f "/tmp/Oracle_VM_VirtualBox_Extension_Pack-${_VER_CUR_VBOX}.vbox-extpack" ]; then
+        wget https://download.virtualbox.org/virtualbox/${_VER_CUR_VBOX}/Oracle_VM_VirtualBox_Extension_Pack-${_VER_CUR_VBOX}.vbox-extpack -O /tmp/Oracle_VM_VirtualBox_Extension_Pack-${_VER_CUR_VBOX}.vbox-extpack
+      fi
+      sudo VBoxManage extpack install /tmp/Oracle_VM_VirtualBox_Extension_Pack-${_VER_CUR_VBOX}.vbox-extpack --replace --accept-license=${_VBOB_LICENSE_KEY}
+      sudo VBoxManage extpack cleanup
+      printf "VirtualBox Extension Pack (...r%s) has been installed and updated!\n" "${_VER_CUR_VBOXREV}"
     fi
-    sudo VBoxManage extpack install /tmp/Oracle_VM_VirtualBox_Extension_Pack-${_VER_CUR_VBOX}.vbox-extpack --replace --accept-license=${_VBOB_LICENSE_KEY}
-    sudo VBoxManage extpack cleanup
-    printf "VirtualBox Extension Pack (...r%s) has been installed and updated!\n" "${_VER_CUR_VBOXREV}"
   fi
 }
 
 # Vagrant - Helper function for cmd_install()...
 #
 _install_vagrant() {
-  _VER_LAT_VAGRANT=$(vagrant version | grep Latest | cut -d' ' -f3)
+  _VER_LAT_VAGRANT="2.2.4"
   if hash vagrant 2>/dev/null; then
+    _VER_LAT_VAGRANT=$(vagrant version | grep Latest | cut -d' ' -f3)
     _VER_CUR_VAGRANT=$(vagrant version | grep Installed | cut -d' ' -f3)
     if _check_version ${_VER_LAT_VAGRANT} ${_VER_CUR_VAGRANT}; then
       printf "A new version of the Vagrant (%s) is available!\n" "${_VER_LAT_VAGRANT}"
@@ -1014,10 +1017,10 @@ _install_vagrant() {
   fi
   # Install Vagrant
   if ${_INSTALL:-false}; then
-    if [ ! -f "/tmp/vagrant.deb" ]; then
-      wget https://releases.hashicorp.com/vagrant/${_VER_LAT_VAGRANT}/vagrant_${_VER_LAT_VAGRANT}_x86_64.deb -O /tmp/vagrant.deb
+    if [ ! -f "/tmp/vagrant_${_VER_LAT_VAGRANT}_x86_64.deb" ]; then
+      wget https://releases.hashicorp.com/vagrant/${_VER_LAT_VAGRANT}/vagrant_${_VER_LAT_VAGRANT}_x86_64.deb -O /tmp/vagrant_${_VER_LAT_VAGRANT}_x86_64.deb
     fi
-    sudo dpkg -i /tmp/vagrant.deb
+    sudo dpkg -i /tmp/vagrant_${_VER_LAT_VAGRANT}_x86_64.deb
     sudo apt install -fy
   fi
 }
