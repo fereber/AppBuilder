@@ -801,12 +801,12 @@ _menu_show_desc() {
 # System updating
 #
 _system_update() {
-  # Refresh repository...
-  printf "Please wait... "
+  printf "Refresh repository... Please wait... "
+  sudo apt update -qq
   if hash flatpak 2>/dev/null; then
+    printf "Flatpak... "
     flatpak update -y
   fi
-  sudo apt update -qq
 
   # Upgrading packages if necessary
   if [[ $(LANG=C apt-get upgrade -s | grep -P '^\d+ upgraded'| cut -d" " -f1) != 0 ]]; then
@@ -1238,7 +1238,7 @@ cmd_remove() {
       fi
       if [[ "$(_check_package_exists --print-status "${_PACK}")" == *"flat"* ]]; then
         _FLATPAK_PACK=$(flatpak list --app --columns=application | grep "${_PACK}")
-         flatpak uninstall -y "${_FLATPAK_PACK}"
+        flatpak uninstall -y "${_FLATPAK_PACK}"
       fi
       if [[ "$(_check_package_exists --print-status "${_PACK}")" == *"complied"* ]]; then
         _SCRIPT_MESSAGES+=("☹ Sorry, '${_PACK}' package can remove manually only.")
