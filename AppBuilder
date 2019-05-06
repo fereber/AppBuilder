@@ -871,23 +871,22 @@ _system_settings() {
     [[ $(cat ~/.hidden 2> /dev/null | grep -q "snap"; echo $?) != 0 ]] && echo "snap" >> ~/.hidden
 
     # Gsettings
-    gsettings set org.gnome.desktop.interface clock-format 24h
-    gsettings set org.gnome.shell enabled-extensions "['alternate-tab@gnome-shell-extensions.gcampax.github.com', 'gsconnect', 'ubuntu-appindicators@ubuntu.com', 'ubuntu-dock@ubuntu.com', 'drive-menu@gnome-shell-extensions.gcampax.github.com', 'user-theme@gnome-shell-extensions.gcampax.github.com']"
     gsettings set org.gnome.shell.extensions.dash-to-dock show-apps-at-top true
     gsettings set org.gnome.shell.extensions.dash-to-dock dock-position 'LEFT'
     gsettings set org.gnome.shell.extensions.dash-to-dock extend-height true
     gsettings set org.gnome.shell.extensions.dash-to-dock dock-fixed true
     gsettings set org.gnome.shell.extensions.dash-to-dock click-action 'minimize'
     gsettings set org.gnome.shell.extensions.dash-to-dock custom-theme-running-dots-color '#dddddd'
-    gsettings set org.gnome.nautilus.preferences default-folder-viewer 'list-view'
+    # gsettings set org.gnome.shell enabled-extensions "['alternate-tab@gnome-shell-extensions.gcampax.github.com', 'ubuntu-appindicators@ubuntu.com', 'ubuntu-dock@ubuntu.com', 'drive-menu@gnome-shell-extensions.gcampax.github.com', 'user-theme@gnome-shell-extensions.gcampax.github.com']"
+    gsettings set org.gnome.desktop.interface clock-format 24h
     gsettings set org.gnome.desktop.interface clock-show-date true
-    gsettings set org.gnome.desktop.interface show-battery-percentage true
     gsettings set org.gnome.desktop.screensaver lock-delay '30'
-    gsettings set org.gnome.settings-daemon.plugins.color night-light-enabled true
-    gsettings set org.gnome.settings-daemon.plugins.color night-light-schedule-automatic true
-    # Atom issue: https://github.com/atom/atom/issues/18535
+    gsettings set org.gnome.desktop.interface show-battery-percentage true
     gsettings set org.gnome.desktop.interface gtk-theme 'Adwaita'
     gsettings set org.gnome.Terminal.Legacy.Settings theme-variant 'dark'
+    gsettings set org.gnome.nautilus.preferences default-folder-viewer 'list-view'
+    gsettings set org.gnome.settings-daemon.plugins.color night-light-enabled true
+    gsettings set org.gnome.settings-daemon.plugins.color night-light-schedule-automatic true
 
     # Disabling crash dialogs
     if [[ $(cat '/etc/default/apport' | grep -q 'enabled=0'; echo $?) != 0 ]]; then
