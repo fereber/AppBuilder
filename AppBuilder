@@ -51,7 +51,7 @@ _APP_COMMON+=( bijiben )                         ; _APP_INSTALL[bijiben]="--pack
 _APP_COMMON+=( simple-scan )                     ; _APP_INSTALL[simple-scan]="--pack"
 _APP_COMMON+=( shotwell )                        ; _APP_INSTALL[shotwell]="--pack"
 _APP_COMMON+=( rhythmbox )                       ; _APP_INSTALL[rhythmbox]="--pack"
-_APP_COMMON+=( gimp )                            ; _APP_INSTALL[gimp]="--flat org.gimp.GIMP --pack"
+_APP_COMMON+=( gimp )                            ; _APP_INSTALL[gimp]="--flat org.gimp.GIMP"
 _APP_COMMON+=( gnome-session )                   ; _APP_INSTALL[gnome-session]="--pack"
 _APP_COMMON+=( gnome-shell-extensions )          ; _APP_INSTALL[gnome-shell-extensions]="--pack"
 _APP_COMMON+=( chrome-gnome-shell )              ; _APP_INSTALL[chrome-gnome-shell]="--pack"
