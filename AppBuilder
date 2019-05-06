@@ -507,8 +507,8 @@ _main() {
 
     while true ; do
       case "${1}" in
-        -h|--help)     cmd_help ${_CMD} ; shift ;;
-        --debug)   set -x ; _DEBUG=true ; shift ;;
+        -h|--help)    cmd_help ${_CMD}  ; shift ;;
+        --debug)      set -x ; _DEBUG=true ; cmd_menu ; shift ;;
         -u)           _system_update    ; shift ;;
         --update)     _script_update    ; shift ;;
         -c|--clean)   _system_cleanup   ; shift ;;
