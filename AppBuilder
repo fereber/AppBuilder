@@ -3080,6 +3080,11 @@ HELPLEMP
 )
 
 cmd_lemp() {
+
+  local _IP="$(hostname -I | awk '{print $1}')"
+  [[ "${_FORCE:-false}" ]] && local _IP="$(hostname -i)"
+  [ -d /home/vagrant ] && local _IP="$(hostname -I | awk '{print $2}')"
+
   # Options parser
   _OPTS_LEMP=$(getopt --options h --long help,debug,force --name "$(basename "${0}") ${_CMD}" -- "${@}")
   if [ $? != 0 ] ; then _error "invalid option(s)" ; fi
@@ -3103,6 +3108,7 @@ cmd_lemp() {
   cmd_mysql
   cmd_php
   printf "  ✔  LEMP Stack is OK\n"
+  printf "  ⇢  Default server: $(tput setaf 4)http://%s$(tput sgr0)\n" "${_IP}"
 }
 
 
