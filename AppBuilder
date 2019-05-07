@@ -10,11 +10,15 @@
 _VERSION='1.0.0'
 
 # Lists of application groups, what you want to manage as an application group
-_APP_COMMON=()
-_APP_ADVANCED=()
+_APP_DESKTOP=()
+_APP_MEDIA=()
+_APP_NET=()
+_APP_DEV=()
 _APP_GAME=()
-_APP_CODEC=()
+_APP_UTILS=()
+_APP_FONT=()
 _APP_NON_FAVORITE=()
+_APP_FAVORITE=()
 
 # Building methods (package format) for interactive selection list
 #
@@ -33,121 +37,138 @@ _APP_NON_FAVORITE=()
 #
 declare -A _APP_INSTALL
 
-# Commonly Used App List
-_APP_COMMON+=( nautilus )                        ; _APP_INSTALL[nautilus]="--pack"
-_APP_COMMON+=( gedit )                           ; _APP_INSTALL[gedit]="--pack"
-_APP_COMMON+=( google-chrome )                   ; _APP_INSTALL[google-chrome]="--deb https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb"
-_APP_COMMON+=( chromium-browser )                ; _APP_INSTALL[chromium-browser]="--pack"
-_APP_COMMON+=( brave )                           ; _APP_INSTALL[brave]="--snap"
-_APP_COMMON+=( epiphany-browser )                ; _APP_INSTALL[epiphany-browser]="--pack"
-_APP_COMMON+=( firefox )                         ; _APP_INSTALL[firefox]="--pack"
-_APP_COMMON+=( thunderbird )                     ; _APP_INSTALL[thunderbird]="--pack"
-_APP_COMMON+=( skype )                           ; _APP_INSTALL[skype]="--flat com.skype.Client"
-_APP_COMMON+=( default-jre )                     ; _APP_INSTALL[default-jre]="--pack"
-_APP_COMMON+=( default-jdk )                     ; _APP_INSTALL[default-jdk]="--pack"
-_APP_COMMON+=( openjdk-8-jdk )                   ; _APP_INSTALL[openjdk-8-jdk]="--pack"
-_APP_COMMON+=( libreoffice )                     ; _APP_INSTALL[libreoffice]="--pack"
-_APP_COMMON+=( bijiben )                         ; _APP_INSTALL[bijiben]="--pack"
-_APP_COMMON+=( simple-scan )                     ; _APP_INSTALL[simple-scan]="--pack"
-_APP_COMMON+=( shotwell )                        ; _APP_INSTALL[shotwell]="--pack"
-_APP_COMMON+=( rhythmbox )                       ; _APP_INSTALL[rhythmbox]="--pack"
-_APP_COMMON+=( gimp )                            ; _APP_INSTALL[gimp]="--flat org.gimp.GIMP"
-_APP_COMMON+=( gnome-session )                   ; _APP_INSTALL[gnome-session]="--pack"
-_APP_COMMON+=( gnome-shell-extensions )          ; _APP_INSTALL[gnome-shell-extensions]="--pack"
-_APP_COMMON+=( chrome-gnome-shell )              ; _APP_INSTALL[chrome-gnome-shell]="--pack"
-_APP_COMMON+=( gnome-weather )                   ; _APP_INSTALL[gnome-weather]="--pack"
-_APP_COMMON+=( gnome-calculator )                ; _APP_INSTALL[gnome-calculator]="--pack" # default: snap; add to an app list (with a different install method) and install if you want
-_APP_COMMON+=( gnome-calendar )                  ; _APP_INSTALL[gnome-calendar]="--pack"
-_APP_COMMON+=( gnome-clocks )                    ; _APP_INSTALL[gnome-clocks]="--pack"
-_APP_COMMON+=( gnome-documents )                 ; _APP_INSTALL[gnome-documents]="--pack"
-_APP_COMMON+=( gnome-todo )                      ; _APP_INSTALL[gnome-todo]="--pack"
-_APP_COMMON+=( gnome-maps )                      ; _APP_INSTALL[gnome-maps]="--pack"
-_APP_COMMON+=( gnome-music )                     ; _APP_INSTALL[gnome-music]="--pack"
-_APP_COMMON+=( gnome-photos )                    ; _APP_INSTALL[gnome-photos]="--pack"
-_APP_COMMON+=( gnome-screenshot )                ; _APP_INSTALL[gnome-screenshot]="--pack"
-_APP_COMMON+=( gnome-software )                  ; _APP_INSTALL[gnome-software]="--pack"
-_APP_COMMON+=( gnome-software-plugin-snap )      ; _APP_INSTALL[gnome-software-plugin-snap]="--pack"
-_APP_COMMON+=( gnome-sushi )                     ; _APP_INSTALL[gnome-sushi]="--pack" # To activate the preview (images, videos or text files), left-click the file and hit space
-_APP_COMMON+=( ubuntu-web-launchers )            ; _APP_INSTALL[ubuntu-web-launchers]="--pack"
+# Desktop
+_APP_DESKTOP+=( nautilus )                        ; _APP_INSTALL[nautilus]="--pack"
+_APP_DESKTOP+=( gedit )                           ; _APP_INSTALL[gedit]="--pack"
+_APP_DESKTOP+=( libreoffice )                     ; _APP_INSTALL[libreoffice]="--pack"
+_APP_DESKTOP+=( simple-scan )                     ; _APP_INSTALL[simple-scan]="--pack"
+_APP_DESKTOP+=( gnome-software )                  ; _APP_INSTALL[gnome-software]="--pack"
+_APP_DESKTOP+=( gnome-software-plugin-snap )      ; _APP_INSTALL[gnome-software-plugin-snap]="--pack"
+_APP_DESKTOP+=( flatpak )                         ; _APP_INSTALL[flatpak]="--pack"
+_APP_DESKTOP+=( gnome-software-plugin-flatpak )   ; _APP_INSTALL[gnome-software-plugin-flatpak]="--pack" # + flatpak if it is not exists
+_APP_DESKTOP+=( gnome-shell-extensions )          ; _APP_INSTALL[gnome-shell-extensions]="--pack"
+_APP_DESKTOP+=( chrome-gnome-shell )              ; _APP_INSTALL[chrome-gnome-shell]="--pack"
+_APP_DESKTOP+=( gnome-weather )                   ; _APP_INSTALL[gnome-weather]="--pack"
+_APP_DESKTOP+=( gnome-calculator )                ; _APP_INSTALL[gnome-calculator]="--pack" # default: snap; add to an app list (with a different install method) and install if you want
+_APP_DESKTOP+=( gnome-calendar )                  ; _APP_INSTALL[gnome-calendar]="--pack"
+_APP_DESKTOP+=( gnome-clocks )                    ; _APP_INSTALL[gnome-clocks]="--pack"
+_APP_DESKTOP+=( gnome-maps )                      ; _APP_INSTALL[gnome-maps]="--pack"
+_APP_DESKTOP+=( gnome-screenshot )                ; _APP_INSTALL[gnome-screenshot]="--pack"
+_APP_DESKTOP+=( gnome-sushi )                     ; _APP_INSTALL[gnome-sushi]="--pack" # To activate the preview (images, videos or text files), left-click the file and hit space
+_APP_DESKTOP+=( gnome-session )                   ; _APP_INSTALL[gnome-session]="--pack"
+_APP_DESKTOP+=( gnome-terminal )                  ; _APP_INSTALL[gnome-terminal]="--pack"
+_APP_DESKTOP+=( default-jre )                     ; _APP_INSTALL[default-jre]="--pack"
+_APP_DESKTOP+=( default-jdk )                     ; _APP_INSTALL[default-jdk]="--pack"
+_APP_DESKTOP+=( openjdk-8-jdk )                   ; _APP_INSTALL[openjdk-8-jdk]="--pack"
+_APP_DESKTOP+=( ubuntu-web-launchers )            ; _APP_INSTALL[ubuntu-web-launchers]="--pack"
 
-# Advanced App List
-_APP_ADVANCED+=( dconf-editor )                  ; _APP_INSTALL[dconf-editor]="--pack"
-_APP_ADVANCED+=( gnome-tweak-tool )              ; _APP_INSTALL[gnome-tweak-tool]="--pack"
-_APP_ADVANCED+=( gparted )                       ; _APP_INSTALL[gparted]="--pack"
-_APP_ADVANCED+=( remmina )                       ; _APP_INSTALL[remmina]="--pack"
-_APP_ADVANCED+=( dropbox )                       ; _APP_INSTALL[dropbox]="--deb https://linux.dropboxstatic.com/packages/ubuntu/dropbox_2.10.0_amd64.deb"
-_APP_ADVANCED+=( nautilus-dropbox )              ; _APP_INSTALL[nautilus-dropbox]="--pack"
-_APP_ADVANCED+=( exiftool )                      ; _APP_INSTALL[exiftool]="--pack" # libimage-exiftool-perl
-_APP_ADVANCED+=( ffmpeg )                        ; _APP_INSTALL[ffmpeg]="--pack"
-_APP_ADVANCED+=( vlc )                           ; _APP_INSTALL[vlc]="--flat org.videolan.VLC"
-_APP_ADVANCED+=( picard )                        ; _APP_INSTALL[picard]="--flat org.musicbrainz.Picard"
-_APP_ADVANCED+=( audacity )                      ; _APP_INSTALL[audacity]="--flat org.audacityteam.Audacity"
-_APP_ADVANCED+=( spotify )                       ; _APP_INSTALL[spotify]="--flat com.spotify.Client"
-_APP_ADVANCED+=( inkscape )                      ; _APP_INSTALL[inkscape]="--pack"
-# _APP_ADVANCED+=( anki )                          ; _APP_INSTALL[anki]="--fun _install_anki"
-_APP_ADVANCED+=( anki )                          ; _APP_INSTALL[anki]="--flat net.ankiweb.Anki"
-_APP_ADVANCED+=( enpass )                        ; _APP_INSTALL[enpass]="--repo 'deb http://repo.sinew.in/ stable main' --key https://apt.enpass.io/keys/enpass-linux.key"
-_APP_ADVANCED+=( digikam )                       ; _APP_INSTALL[digikam]="--appimg https://download.kde.org/stable/digikam/6.0.0/digikam-6.0.0-x86-64.appimage"
-_APP_ADVANCED+=( mysql-server )                  ; _APP_INSTALL[mysql-server]="--fun cmd_mysql"
-_APP_ADVANCED+=( git )                           ; _APP_INSTALL[git]="--pack"
-_APP_ADVANCED+=( python3-pip )                   ; _APP_INSTALL[python3-pip]="--pack"
-# _APP_ADVANCED+=( virtualbox )                    ; _APP_INSTALL[virtualbox]="--deb https://download.virtualbox.org/virtualbox/6.0.4/virtualbox-6.0_6.0.4-128413~Ubuntu~bionic_amd64.deb"
-# _APP_ADVANCED+=( vagrant )                       ; _APP_INSTALL[vagrant]="--deb https://releases.hashicorp.com/vagrant/2.2.4/vagrant_2.2.4_x86_64.deb"
-_APP_ADVANCED+=( virtualbox )                    ; _APP_INSTALL[virtualbox]="--fun _install_virtualbox"
-_APP_ADVANCED+=( vagrant )                       ; _APP_INSTALL[vagrant]="--fun _install_vagrant"
-_APP_ADVANCED+=( poedit )                        ; _APP_INSTALL[poedit]="--pack"
-_APP_ADVANCED+=( atom )                          ; _APP_INSTALL[atom]="--set atom --snap=--classic"
-_APP_ADVANCED+=( sublimetext )                   ; _APP_INSTALL[sublimetext]="--flat com.sublimetext.three"
-_APP_ADVANCED+=( gnome-builder )                 ; _APP_INSTALL[gnome-builder]="--pack" # + sysprof
-_APP_ADVANCED+=( filezilla )                     ; _APP_INSTALL[filezilla]="--pack"
-_APP_ADVANCED+=( librecad )                      ; _APP_INSTALL[librecad]="--pack"
-_APP_ADVANCED+=( gnome-terminal )                ; _APP_INSTALL[gnome-terminal]="--pack"
-_APP_ADVANCED+=( gnome-disk-utility )            ; _APP_INSTALL[gnome-disk-utility]="--pack"
-_APP_ADVANCED+=( gnome-usage )                   ; _APP_INSTALL[gnome-usage]="--pack"
-_APP_ADVANCED+=( gnome-system-monitor )          ; _APP_INSTALL[gnome-system-monitor]="--pack" # default snap
-_APP_ADVANCED+=( gnome-characters )              ; _APP_INSTALL[gnome-characters]="--pack" # default snap
-_APP_ADVANCED+=( gnome-logs )                    ; _APP_INSTALL[gnome-logs]="--pack" # default snap
-_APP_ADVANCED+=( transmission )                  ; _APP_INSTALL[transmission]="--pack"
-_APP_ADVANCED+=( flatpak )                       ; _APP_INSTALL[flatpak]="--pack"
-_APP_ADVANCED+=( gnome-software-plugin-flatpak ) ; _APP_INSTALL[gnome-software-plugin-flatpak]="--pack" # + flatpak if it is not exists
+# Media: Photo & Audio & Video
+_APP_MEDIA+=( gnome-photos )                      ; _APP_INSTALL[gnome-photos]="--pack"
+_APP_MEDIA+=( gimp )                              ; _APP_INSTALL[gimp]="--flat org.gimp.GIMP"
+_APP_MEDIA+=( digikam )                           ; _APP_INSTALL[digikam]="--appimg https://download.kde.org/stable/digikam/6.0.0/digikam-6.0.0-x86-64.appimage"
+_APP_MEDIA+=( shotwell )                          ; _APP_INSTALL[shotwell]="--pack"
+_APP_MEDIA+=( exiftool )                          ; _APP_INSTALL[exiftool]="--pack" # libimage-exiftool-perl
+_APP_MEDIA+=( inkscape )                          ; _APP_INSTALL[inkscape]="--pack"
+_APP_MEDIA+=( librecad )                          ; _APP_INSTALL[librecad]="--pack"
+_APP_MEDIA+=( gnome-music )                       ; _APP_INSTALL[gnome-music]="--pack"
+_APP_MEDIA+=( rhythmbox )                         ; _APP_INSTALL[rhythmbox]="--pack"
+_APP_MEDIA+=( picard )                            ; _APP_INSTALL[picard]="--flat org.musicbrainz.Picard"
+_APP_MEDIA+=( audacity )                          ; _APP_INSTALL[audacity]="--flat org.audacityteam.Audacity"
+_APP_MEDIA+=( spotify )                           ; _APP_INSTALL[spotify]="--flat com.spotify.Client"
+_APP_MEDIA+=( ffmpeg )                            ; _APP_INSTALL[ffmpeg]="--pack"
+_APP_MEDIA+=( vlc )                               ; _APP_INSTALL[vlc]="--flat org.videolan.VLC"
+_APP_MEDIA+=( ubuntu-restricted-extras )          ; _APP_INSTALL[ubuntu-restricted-extras]="--pack"
+_APP_MEDIA+=( libdvdnav4 )                        ; _APP_INSTALL[libdvdnav4]="--pack"
+_APP_MEDIA+=( libdvdread4 )                       ; _APP_INSTALL[libdvdread4]="--pack"
+_APP_MEDIA+=( gstreamer1.0-plugins-bad )          ; _APP_INSTALL[gstreamer1.0-plugins-bad]="--pack"
+_APP_MEDIA+=( gstreamer1.0-plugins-ugly )         ; _APP_INSTALL[gstreamer1.0-plugins-ugly]="--pack"
+_APP_MEDIA+=( libdvd-pkg )                        ; _APP_INSTALL[libdvd-pkg]="--pack" # fix: sudo dpkg-reconfigure libdvd-pkg
 
-# Games App List
-_APP_GAME+=( aisleriot )                         ; _APP_INSTALL[aisleriot]="--pack"
-_APP_GAME+=( gnome-mahjongg )                    ; _APP_INSTALL[gnome-mahjongg]="--pack"
-_APP_GAME+=( gnome-sudoku )                      ; _APP_INSTALL[gnome-sudoku]="--pack"
-_APP_GAME+=( gnome-mines )                       ; _APP_INSTALL[gnome-mines]="--pack"
+# Web & Communication & News
+_APP_NET+=( google-chrome )                       ; _APP_INSTALL[google-chrome]="--deb https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb"
+_APP_NET+=( chromium-browser )                    ; _APP_INSTALL[chromium-browser]="--pack"
+_APP_NET+=( brave )                               ; _APP_INSTALL[brave]="--snap"
+_APP_NET+=( epiphany-browser )                    ; _APP_INSTALL[epiphany-browser]="--pack"
+_APP_NET+=( firefox )                             ; _APP_INSTALL[firefox]="--pack"
+_APP_NET+=( dropbox )                             ; _APP_INSTALL[dropbox]="--deb https://linux.dropboxstatic.com/packages/ubuntu/dropbox_2.10.0_amd64.deb"
+_APP_NET+=( nautilus-dropbox )                    ; _APP_INSTALL[nautilus-dropbox]="--pack"
+_APP_NET+=( thunderbird )                         ; _APP_INSTALL[thunderbird]="--pack"
+_APP_NET+=( geary )                               ; _APP_INSTALL[geary]="--pack"
+_APP_NET+=( skype )                               ; _APP_INSTALL[skype]="--flat com.skype.Client"
+_APP_NET+=( remmina )                             ; _APP_INSTALL[remmina]="--pack"
+_APP_NET+=( filezilla )                           ; _APP_INSTALL[filezilla]="--pack"
 
-# Codecs App List
-_APP_CODEC+=( ubuntu-restricted-extras )         ; _APP_INSTALL[ubuntu-restricted-extras]="--pack"
-_APP_CODEC+=( libdvdnav4 )                       ; _APP_INSTALL[libdvdnav4]="--pack"
-_APP_CODEC+=( libdvdread4 )                      ; _APP_INSTALL[libdvdread4]="--pack"
-_APP_CODEC+=( gstreamer1.0-plugins-bad )         ; _APP_INSTALL[gstreamer1.0-plugins-bad]="--pack"
-_APP_CODEC+=( gstreamer1.0-plugins-ugly )        ; _APP_INSTALL[gstreamer1.0-plugins-ugly]="--pack"
-_APP_CODEC+=( libdvd-pkg )                       ; _APP_INSTALL[libdvd-pkg]="--pack" # fix: sudo dpkg-reconfigure libdvd-pkg
+# Development
+_APP_DEV+=( atom )                                ; _APP_INSTALL[atom]="--set atom --snap=--classic"
+_APP_DEV+=( sublimetext )                         ; _APP_INSTALL[sublimetext]="--flat com.sublimetext.three"
+_APP_DEV+=( git )                                 ; _APP_INSTALL[git]="--pack"
+_APP_DEV+=( python3-pip )                         ; _APP_INSTALL[python3-pip]="--pack"
+# _APP_DEV+=( virtualbox )                          ; _APP_INSTALL[virtualbox]="--deb https://download.virtualbox.org/virtualbox/6.0.4/virtualbox-6.0_6.0.4-128413~Ubuntu~bionic_amd64.deb"
+# _APP_DEV+=( vagrant )                             ; _APP_INSTALL[vagrant]="--deb https://releases.hashicorp.com/vagrant/2.2.4/vagrant_2.2.4_x86_64.deb"
+_APP_DEV+=( virtualbox )                          ; _APP_INSTALL[virtualbox]="--fun _install_virtualbox"
+_APP_DEV+=( vagrant )                             ; _APP_INSTALL[vagrant]="--fun _install_vagrant"
+_APP_DEV+=( mysql-server )                        ; _APP_INSTALL[mysql-server]="--fun cmd_mysql"
+_APP_DEV+=( poedit )                              ; _APP_INSTALL[poedit]="--pack"
+_APP_DEV+=( gnome-builder )                       ; _APP_INSTALL[gnome-builder]="--pack" # + sysprof
 
-# Non-favorite App List ☠ ☠ ☠
+# Games
+_APP_GAME+=( aisleriot )                          ; _APP_INSTALL[aisleriot]="--pack"
+_APP_GAME+=( gnome-mahjongg )                     ; _APP_INSTALL[gnome-mahjongg]="--pack"
+_APP_GAME+=( gnome-sudoku )                       ; _APP_INSTALL[gnome-sudoku]="--pack"
+_APP_GAME+=( gnome-mines )                        ; _APP_INSTALL[gnome-mines]="--pack"
+
+# Utilities
+_APP_UTILS+=( dconf-editor )                      ; _APP_INSTALL[dconf-editor]="--pack"
+_APP_UTILS+=( gnome-tweak-tool )                  ; _APP_INSTALL[gnome-tweak-tool]="--pack"
+_APP_UTILS+=( gparted )                           ; _APP_INSTALL[gparted]="--pack"
+_APP_UTILS+=( anki )                              ; _APP_INSTALL[anki]="--flat net.ankiweb.Anki"
+_APP_UTILS+=( enpass )                            ; _APP_INSTALL[enpass]="--repo 'deb http://repo.sinew.in/ stable main' --key https://apt.enpass.io/keys/enpass-linux.key"
+_APP_UTILS+=( gnome-notes )                       ; _APP_INSTALL[gnome-notes]="--pack"
+_APP_UTILS+=( bijiben )                           ; _APP_INSTALL[bijiben]="--pack"
+_APP_UTILS+=( gnome-todo )                        ; _APP_INSTALL[gnome-todo]="--pack"
+_APP_UTILS+=( gnome-documents )                   ; _APP_INSTALL[gnome-documents]="--pack"
+_APP_UTILS+=( gnome-disk-utility )                ; _APP_INSTALL[gnome-disk-utility]="--pack"
+_APP_UTILS+=( gnome-usage )                       ; _APP_INSTALL[gnome-usage]="--pack"
+_APP_UTILS+=( gnome-characters )                  ; _APP_INSTALL[gnome-characters]="--pack" # default snap
+_APP_UTILS+=( gnome-logs )                        ; _APP_INSTALL[gnome-logs]="--pack" # default snap
+_APP_UTILS+=( gnome-system-monitor )              ; _APP_INSTALL[gnome-system-monitor]="--pack" # default snap
+_APP_UTILS+=( transmission )                      ; _APP_INSTALL[transmission]="--pack"
+
+# Fonts App List
+_APP_FONT+=( fonts-font-awesome )                 ; _APP_INSTALL[fonts-font-awesome]="--pack"
+_APP_FONT+=( fonts-lato )                         ; _APP_INSTALL[fonts-lato]="--pack"
+_APP_FONT+=( fonts-roboto )                       ; _APP_INSTALL[fonts-roboto]="--pack"
+_APP_FONT+=( ttf-mscorefonts-installer )          ; _APP_INSTALL[ttf-mscorefonts-installer]="--pack"
+# Font packages list: apt-cache search -n '^fonts-*' | awk '{print $1}'
+
+# Quick-start List: Non-favorite Apps
 #
-# If you want to mark a package then add it to your non-favorite list as well.
+# If you want to mark (☠) a package then add it to your non-favorite list
 #
 # The non-favorite apps will not be automatically removed.
-# If these apps exist on the applications lists, then they will be only unchecking or
-# checking on the - installing or removing - lists, depending on the following.
+# If these apps exist on the applications lists, then they will be only UNCHECKING or
+# CHECKING on the - installing or removing - lists, depending on the following.
 #
 #  Default:
 # |-----------------------------------------------|-----------------|----------------|
 # |                App / Package                  | Installing List | Removing List  |
 # |------------------------------------------|----|-----------------|----------------|
-# | if not present on your system            |    |                 |                |
-# |   and present on 'non-favorite list'     | ✖  | unchecked       | unchecked      |
+# | if not present on your system            | ✖  |                 |                |
+# |   and present on 'non-favorite list'     |    | unchecked       | unchecked      |
 # |   and not present on 'non-favorite list' |    | unchecked       | unchecked      |
+# |   and present on 'favorite list'         |    | CHECKED         | unchecked      |
+# |   and not present on 'favorite list'     |    | unchecked       | unchecked      |
 # |------------------------------------------|----|-----------------|----------------|
-# | if present on you system                 |    |                 |                |
-# |   and present on 'non-favorite list'     | ✔  | unchecked       | checked        |
+# | if present on you system                 | ✔  |                 |                |
+# |   and present on 'non-favorite list'     |    | unchecked       | CHECKED        |
 # |   and not present on 'non-favorite list' |    | unchecked       | unchecked      |
+# |   and present on 'favorite list'         |    | unchecked       | unchecked      |
+# |   and not present on 'favorite list'     |    | unchecked       | unchecked      |
 # |------------------------------------------|----|-----------------|----------------|
 #
 _APP_NON_FAVORITE=(
   ubuntu-web-launchers
+  transmission
   gnome-characters
   gnome-logs
   gnome-system-monitor
@@ -155,12 +176,20 @@ _APP_NON_FAVORITE=(
   gnome-documents
   bijiben
   libdvd-pkg
-  transmission
-  epiphany-browser
-  shotwell
-  rhythmbox
-  ubuntu-web-launchers
 )
+
+# Quick-start List: Favorite Apps
+#
+_APP_PREFER+=( google-chrome firefox thunderbird skype ubuntu-restricted-extras )
+_APP_PREFER+=( ${_APP_DESKTOP[@]} ${_APP_FONT[@]} ) # Add some full app list
+for i in "${_APP_PREFER[@]}"; do    # Remove non-favorite apps
+  _SKIP=""
+  for j in "${_APP_NON_FAVORITE[@]}"; do
+    [[ $i == $j ]] && { _SKIP=1; break; }
+  done
+  [[ -n $_SKIP ]] || _APP_FAVORITE+=("$i")
+done
+
 
 # Print short description of package (default value is disable, as it slow down the script)
 _SHOW_DESC=${_SHOW_DESC:-0}
@@ -609,47 +638,56 @@ HELPMENU
 cmd_menu(){
   _dimension
   if _check_desktop; then
-    _MENU_MAIN=$(whiptail --title "Main Menu" --menu "\n   What would you like to do? Choose an option..." --cancel-button "Quit" --notags $LINES $COLUMNS $(( $LINES - 10 )) \
-        "cmd_menu" "System:" \
+    _MENU_MAIN=$(whiptail --title "Desktop Main Menu" --menu "\n   What would you like to do? Choose an option..." --cancel-button "Quit" --notags $LINES $COLUMNS $(( $LINES - 10 )) \
+        "cmd_menu" "SYSTEM" \
         "_system_update" "  Update" \
         "_system_cleanup" "  Cleaning" \
         "_system_info" "  Print Info" \
         "_system_error" "  Print Error" \
         "cmd_menu" "" \
-        "cmd_menu" "Installing Applications:" \
-        "_menu_sub install _APP_COMMON 'Commonly Used Application' 'Install'" "  Commonly Used ▸" \
-        "_menu_sub install _APP_ADVANCED 'Installing Advanced Application' 'Install'" "  Advanced ▸" \
-        "_menu_sub install _APP_GAME 'Installing Games' 'Install'" "  Games ▸" \
-        "_menu_sub install _APP_CODEC 'Installing Codecs' 'Install'" "  Codecs ▸" \
+        "cmd_menu" "QUICK START" \
+        "_menu_sub install _APP_FAVORITE 'Install - Favorite Apps' 'Install'" "  Install Favorite Apps ▸" \
+        "_menu_sub remove _APP_NON_FAVORITE 'Removing - Non Favorite Apps' 'Uninstall'" "  Uninstall Non-Favorite Apps ▸" \
         "cmd_menu" "" \
-        "cmd_menu" "Removing Applications:" \
-        "_menu_sub remove _APP_COMMON 'Removing Commonly Used Application' 'Uninstall'" "  Commonly Used ▸" \
-        "_menu_sub remove _APP_ADVANCED 'Removing Advanced Application' 'Uninstall'" "  Advanced ▸" \
-        "_menu_sub remove _APP_GAME 'Removing Games' 'Uninstall'" "  Games ▸" \
-        "_menu_sub remove _APP_CODEC 'Removing Codecs' 'Uninstall'" "  Codecs ▸" \
-        "_menu_sub remove _APP_NON_FAVORITE 'Removing Non-favorite Apps' 'Uninstall'" "  Non-favorite Apps ▸" \
+        "cmd_menu" "INSTALLING APPLICATIONS" \
+        "_menu_sub install _APP_DESKTOP 'Install - Desktop Application' 'Install'" "  Desktop ▸" \
+        "_menu_sub install _APP_MEDIA 'Install - Media Application' 'Install'" "  Media ▸" \
+        "_menu_sub install _APP_NET 'Install - Web & Communication Application' 'Install'" "  Net ▸" \
+        "_menu_sub install _APP_UTILS 'Install - Utilities' 'Install'" "  Utils ▸" \
+        "_menu_sub install _APP_DEV 'Install - Apps for Development' 'Install'" "  Development ▸" \
+        "_menu_sub install _APP_GAME 'Install - Games' 'Install'" "  Games ▸" \
+        "_menu_sub install _APP_FONT 'Install - Fonts' 'Install'" "  Fonts ▸" \
         "cmd_menu" "" \
-        "cmd_menu" "Settings:" \
+        "cmd_menu" "REMOVING APPLICATIONS" \
+        "_menu_sub remove _APP_DESKTOP 'Remove - Desktop Application' 'Uninstall'" "  Desktop ▸" \
+        "_menu_sub remove _APP_MEDIA 'Remove - Media Application' 'Uninstall'" "  Media ▸" \
+        "_menu_sub remove _APP_NET 'Remove - Web & Communication Application' 'Uninstall'" "  Net ▸" \
+        "_menu_sub remove _APP_UTILS 'Remove - Utilities' 'Uninstall'" "  Utils ▸" \
+        "_menu_sub remove _APP_DEV 'Remove - Apps for Development' 'Uninstall'" "  Development ▸" \
+        "_menu_sub remove _APP_GAME 'Remove - Games' 'Uninstall'" "  Games ▸" \
+        "_menu_sub remove _APP_FONT 'Remove - Fonts' 'Uninstall'" "  Fonts ▸" \
+        "cmd_menu" "" \
+        "cmd_menu" "SETTINGS" \
         "_menu_show_desc" "  Show App Info" \
         "_java_settings" "  Config Java" \
         "_system_settings" "  Setting System" \
       3>&1 1>&2 2>&3)
   else
-    _MENU_MAIN=$(whiptail --title "Main Menu" --menu "\n   What would you like to do? Choose an option..." --cancel-button "Quit" --notags $LINES $COLUMNS $(( $LINES - 10 )) \
-        "cmd_menu" "System:" \
+    _MENU_MAIN=$(whiptail --title "Server Main Menu" --menu "\n   What would you like to do? Choose an option..." --cancel-button "Quit" --notags $LINES $COLUMNS $(( $LINES - 10 )) \
+        "cmd_menu" "SYSTEM" \
         "_system_update" "  Update" \
         "_system_cleanup" "  Cleaning" \
         "_system_info" "  Print Info" \
         "_system_error" "  Print Error" \
         "cmd_menu" "" \
-        "cmd_menu" "Installing Applications:" \
+        "cmd_menu" "INSTALLING" \
         "cmd_lemp" "  LEMP Stack" \
         "cmd_nginx" "  Nginx" \
         "cmd_mysql" "  MySQL" \
         "cmd_php" "  Php" \
         "cmd_odoo" "  Odoo" \
         "cmd_menu" "" \
-        "cmd_menu" "Settings:" \
+        "cmd_menu" "SETTINGS" \
         "_nginx_block" "  Nginx Server Block" \
         "_menu_purge_cache" "  Purge FastCGI Cache" \
       3>&1 1>&2 2>&3)
@@ -704,6 +742,9 @@ _menu_checking_list() {
     else
       _mark_non_favorite=""
     fi
+    if _contains "${_PACKAGE}" "${_APP_FAVORITE[@]}"; then
+      [[ "${_install_status}" == "✖ ( -- )" ]] && _install_list_check="ON"
+    fi
 
     # Create whiptail commands
     if [[ "${1}" == "install" ]]; then
@@ -748,7 +789,7 @@ _menu_sub() {
   # Build a list
   _menu_checking_list "${@}"
   # Checklist
-  _CHECK_LIST=$(whiptail --title "${3}" --checklist "\n   Choose one or more apps to ${1}...\n\n   ✔  installed (sources)\n   ✖ not installed\n   ☠ non-favorite\n" \
+  _CHECK_LIST=$(whiptail --title "${3}" --checklist "\n   Choose one or more apps to ${1}...\n\n   installed     : ✔ (sources)\n   not installed : ✖ ( -- )\n   non-favorite  : ☠\n   -------------------------------------\n" \
       --separate-output --cancel-button "Back to Main Menu" --ok-button "${4}" --notags \
       $LINES $COLUMNS $(( $LINES - 14 )) \
       "${_APP_LIST[@]}" \
