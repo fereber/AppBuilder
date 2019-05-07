@@ -2477,17 +2477,28 @@ FASTCGICACHEPATH
         fi
       fi
 
-
       # Reload Nginx
       sudo nginx -s reload || _error "reloading Nginx -- 'after adding a server block'"
       printf "\n  ✔  Server block for %s is ready!\n" "${_SUB}${_DOMAIN}"
 
-      # Print info message(s)
-      #
+      # Print message(s)
+      if [[ -n ${_SUB:-} ]]; then
+        _HOST_CONTENT="${_IP} ${_DOMAIN} www.${_DOMAIN} ${_SUB}${_DOMAIN}"
+      else
+        _HOST_CONTENT="${_IP} ${_DOMAIN} www.${_DOMAIN}"
+      fi
       if "${_SSL:-false}"; then
         _SCHEME="https"
       else
         _SCHEME="http"
+      fi
+      printf "\n  Don't forget, if you are used Vagrantbox:\n"
+      printf "  - add this entry to your \`/etc/hosts\` file (on host):\n    $(tput setaf 3)%s$(tput sgr0)\n" "${_HOST_CONTENT}"
+
+      if "${_SSL:-false}"; then
+        printf "  - go to ⇢  $(tput setaf 4)chrome://settings/certificates$(tput sgr0) and import the\n"
+        printf "    \`../${_SUB}${_DOMAIN}/letsencrypt/%s-local-fullchain.crt\`\n    file to the Chrome* web browser\n" "${_DOMAIN}"
+        printf "    $(tput sitm)$(tput setaf 244)* Chrome supports the self signed certificates$(tput sgr0)\n"
       fi
 
       [[ "${_DOMAIN}" == "${_THIS_HOST}" ]] && _DOMAIN=${_IP}
@@ -2563,21 +2574,6 @@ _ssl_certificate() {
     #  Including ssl stapling snippet --> Ssl stapling not supported on localhost
     # _SSL_STAPLING="include /etc/nginx/snippets/ssl-stapling.conf;"
 
-    # Print message(s)
-    if [[ -n ${_SUB:-} ]]; then
-      _HOST_CONTENT="${_IP} ${_DOMAIN} www.${_DOMAIN} ${_SUB}${_DOMAIN}"
-    else
-      _HOST_CONTENT="${_IP} ${_DOMAIN} www.${_DOMAIN}"
-    fi
-    printf "\n  Don't forget, if you are used Vagrantbox:\n\n"
-    printf "  - add this entry to your \`/etc/hosts\` file (on host):\n    $(tput setaf 3)%s$(tput sgr0)\n" "${_HOST_CONTENT}"
-
-    if "${_SSL:-false}"; then
-      printf "  - go to ⇢  $(tput setaf 4)chrome://settings/certificates$(tput sgr0) and import the\n"
-      printf "    \`../${_SUB}${_DOMAIN}/letsencrypt/%s-local-fullchain.crt\`\n    file to the Chrome* web browser\n" "${_DOMAIN}"
-      printf "    $(tput sitm)$(tput setaf 244)* Chrome supports the self signed certificates$(tput sgr0)\n"
-    fi
-
   else
 
     # Let's Encrypt certificate
@@ -2606,7 +2602,7 @@ _ssl_certificate() {
     _SSL_STAPLING="include /etc/nginx/snippets/ssl-stapling.conf;"
 
     # Message
-    printf "Creating Let’s Encrypt certificate for https://%s is done\n" "${_SUB}${_DOMAIN}"
+    printf "\nCreating Let’s Encrypt certificate for https://%s is done\n" "${_SUB}${_DOMAIN}"
   fi
 }
 
