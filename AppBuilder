@@ -1319,7 +1319,7 @@ cmd_vagrant() {
   ! _check_desktop && printf "%b\n" "${_CHAS_MESSAGE}" && exit 1
 
   local _PATH=""
-  local _IP="192.168.33.10"
+  local _IP="${_VAR[IP]}"
 
   # Options parser
   _OPTS_VAGRANT=$(getopt --options hp:i --long help,debug,path:,ip --name "$(basename "${0}") ${_CMD}" -- "${@}")
@@ -1454,9 +1454,6 @@ cmd_nginx() {
   # local _VER_LAT_OPENSSL="$(wget -qO- --no-check-certificate https://www.openssl.org/source/ | egrep -o 'openssl-[A-Za-z0-9\.]+.tar.gz' | sort -V | tail -1 | sed -nre 's|^[^0-9]*(([0-9]+\.)*[A-Za-z0-9]+).*|\1|p')"
   local _VER_OPENSSL="1.1.1b"
   local _VER_GEOIP2="3.2"
-  local _IP="$(hostname -I | awk '{print $1}')"
-  [[ "${_FORCE:-false}" ]] && local _IP="$(hostname -i)"
-  [ -d /home/vagrant ] && local _IP="$(hostname -I | awk '{print $2}')"
   local _USER_WEB="www-data"
   local _THIS_HOST=$(hostname)
 
@@ -2010,7 +2007,7 @@ HTTPDEFAULTBLOCK
   <style>.center{text-align: center!important;}</style>
   </head>
   <body>
-    <p class="center">${_IP}</p>
+    <p class="center">${_VAR[IP]}</p>
   </body>
 </html>
 INDEXHTML
@@ -2077,7 +2074,7 @@ NGINXSERVICE
       sudo systemctl start nginx.service || _error "install and starting Nginx -- 'sysremctl'"
       # sudo ln -sf /lib/systemd/system/nginx.service /etc/systemd/system/multi-user.target.wants/
       printf "  ✔  Starting Nginx is OK\n"
-      [ -d /home/vagrant ] && printf "  ⇢  Default server: $(tput setaf 4)http://%s$(tput sgr0)\n" "${_IP}"
+      [ -d /home/vagrant ] && printf "  ⇢  Default server: $(tput setaf 4)http://%s$(tput sgr0)\n" "${_VAR[IP]}"
     else
       # Check if Nginx will automatically initiate after a reboot:
       if [[ $(systemctl is-enabled nginx.service) != "enabled" ]]; then
@@ -2085,7 +2082,7 @@ NGINXSERVICE
       fi
       sudo nginx -s reload || _error "configure and reloading Nginx"
       printf "  ✔  Nginx Reloading is OK\n"
-      [ -d /home/vagrant ] && printf "  ⇢  Default server: $(tput setaf 4)http://%s$(tput sgr0)\n" "${_IP}"
+      [ -d /home/vagrant ] && printf "  ⇢  Default server: $(tput setaf 4)http://%s$(tput sgr0)\n" "${_VAR[IP]}"
     fi
   fi # ..end of server configure
 
@@ -2137,7 +2134,7 @@ NGINXSERVICE
     if [[ "${REPLY:-}" =~ ^[Yy]$ ]]; then
 
       # Set FQDN
-      _FQDN="${_IP} ${_THIS_HOST}.${_DOMAIN} ${_THIS_HOST}"
+      _FQDN="${_VAR[IP]} ${_THIS_HOST}.${_DOMAIN} ${_THIS_HOST}"
       grep "${_FQDN}" /etc/hosts &>/dev/null || printf "%s\n" "${_FQDN}" | sudo tee -a /etc/hosts > /dev/null
 
       # Create server path
@@ -2483,9 +2480,9 @@ FASTCGICACHEPATH
 
       # Print message(s)
       if [[ -n ${_SUB:-} ]]; then
-        _HOST_CONTENT="${_IP} ${_DOMAIN} www.${_DOMAIN} ${_SUB}${_DOMAIN}"
+        _HOST_CONTENT="${_VAR[IP]} ${_DOMAIN} www.${_DOMAIN} ${_SUB}${_DOMAIN}"
       else
-        _HOST_CONTENT="${_IP} ${_DOMAIN} www.${_DOMAIN}"
+        _HOST_CONTENT="${_VAR[IP]} ${_DOMAIN} www.${_DOMAIN}"
       fi
       if "${_SSL:-false}"; then
         _SCHEME="https"
@@ -2501,12 +2498,12 @@ FASTCGICACHEPATH
         printf "    $(tput sitm)$(tput setaf 244)* Chrome supports the self signed certificates$(tput sgr0)\n"
       fi
 
-      [[ "${_DOMAIN}" == "${_THIS_HOST}" ]] && _DOMAIN=${_IP}
+      [[ "${_DOMAIN}" == "${_THIS_HOST}" ]] && _DOMAIN=${_VAR[IP]}
       printf "\n  Open up your web browser and navigate to following url:\n  ⇢  $(tput setaf 4)%s://%s$(tput sgr0)\n" "${_SCHEME}" "${_SUB}${_DOMAIN}"
       if [ -d "/home/vagrant" ]; then
         # Info if MailCatcher running (Set your favourite app to deliver to local smtp://127.0.0.1:1025 instead of your default SMTP server.)
         if hash mailcatcher 2>/dev/null; then
-          printf "  Check out and test your e-mail(s) here:\n  ⇢  $(tput setaf 4)http://%s:1080$(tput sgr0)\n" "${_IP}"
+          printf "  Check out and test your e-mail(s) here:\n  ⇢  $(tput setaf 4)http://%s:1080$(tput sgr0)\n" "${_VAR[IP]}"
         fi
       fi
 
@@ -2555,7 +2552,7 @@ _ssl_certificate() {
       #                         after you imported the VPS-fullchain crt. file(s) to the Chrome web browser
       #
       if [[ "${_DOMAIN}" == "${_THIS_HOST}" ]]; then
-        sudo sed -i "s/^# Extensions for a typical CA/subjectAltName=IP:${_IP}/g" /tmp/openssl.${_DOMAIN}.cnf
+        sudo sed -i "s/^# Extensions for a typical CA/subjectAltName=IP:${_VAR[IP]}/g" /tmp/openssl.${_DOMAIN}.cnf
       else
         sudo sed -i "s/^# Extensions for a typical CA/subjectAltName=DNS:${_DOMAIN}, DNS:www.${_DOMAIN}, DNS:*.${_DOMAIN}/g" /tmp/openssl.${_DOMAIN}.cnf
       fi
@@ -2766,10 +2763,6 @@ EOF
   fi
 
   if "${_CONFIG:-false}"; then
-    local _IP="$(hostname -I | awk '{print $1}')"
-    [[ "${_FORCE:-false}" ]] && local _IP="$(hostname -i)"
-    [ -d /home/vagrant ] && local _IP="$(hostname -I | awk '{print $2}')"
-
     # Create custom config file
     sudo bash -c "cat > /etc/mysql/my.cnf" <<MYSQLCONFIG
 #
@@ -2785,7 +2778,7 @@ EOF
 #
 # * Basic Settings
 #
-bind-address             = ${_IP}
+bind-address             = ${_VAR[IP]}
 require_secure_transport = on
 #
 # * SSL Settings
@@ -2954,10 +2947,6 @@ cmd_php() {
   fi
 
   if "${_CONFIG:-false}"; then
-
-    local _IP="$(hostname -I | awk '{print $1}')"
-    [[ "${_FORCE:-false}" ]] && local _IP="$(hostname -i)"
-    [ -d /home/vagrant ] && local _IP="$(hostname -I | awk '{print $2}')"
     _check_timezone
 
     sudo bash -c "cat > /etc/php/${_VER_PHP}/fpm/conf.d/myphp.ini" <<EOF
@@ -3012,7 +3001,7 @@ EOF
 /* Server: localhost [1] */
 \$i++;
 \$cfg['Servers'][\$i]['verbose']      = '';
-\$cfg['Servers'][\$i]['host']         = '${_IP}';
+\$cfg['Servers'][\$i]['host']         = '${_VAR[IP]}';
 \$cfg['Servers'][\$i]['port']         = '';
 \$cfg['Servers'][\$i]['socket']       = '';
 \$cfg['Servers'][\$i]['auth_type']    = 'cookie';
@@ -3076,11 +3065,6 @@ HELPLEMP
 )
 
 cmd_lemp() {
-
-  local _IP="$(hostname -I | awk '{print $1}')"
-  [[ "${_FORCE:-false}" ]] && local _IP="$(hostname -i)"
-  [ -d /home/vagrant ] && local _IP="$(hostname -I | awk '{print $2}')"
-
   # Options parser
   _OPTS_LEMP=$(getopt --options h --long help,debug,force --name "$(basename "${0}") ${_CMD}" -- "${@}")
   if [ $? != 0 ] ; then _error "invalid option(s)" ; fi
@@ -3104,9 +3088,8 @@ cmd_lemp() {
   cmd_mysql
   cmd_php
   printf "  ✔  LEMP Stack is OK\n"
-  printf "  ⇢  Default server: $(tput setaf 4)http://%s$(tput sgr0)\n" "${_IP}"
+  printf "  ⇢  Default server: $(tput setaf 4)http://%s$(tput sgr0)\n" "${_VAR[IP]}"
 }
-
 
 # COMMAND: Odoo
 #
@@ -3146,9 +3129,6 @@ cmd_odoo() {
   _check_desktop && printf "%b\n" "${_CHAS_MESSAGE}" && exit 1
 
   local _VER_ODOO="12.0"
-  local _IP="$(hostname -I | awk '{print $1}')"
-  [[ "${_FORCE:-false}" ]] && local _IP="$(hostname -i)"
-  [ -d /home/vagrant ] && local _IP="$(hostname -I | awk '{print $2}')"
 
   if [ ! -f "/opt/odoo/odoo-bin" ]; then
 
@@ -3369,7 +3349,7 @@ ODOOINIT
     # sudo -H pip3 install odoo${_ODOO_BRANCH}-addon-web-data-protection odoo-autodiscover
   fi
 
-  printf "  Open a new browser window and visit the address:\n  ⇢ $(tput setaf 4)http://%s:8069$(tput sgr0)\n" "${_IP}"
+  printf "  Open a new browser window and visit the address:\n  ⇢ $(tput setaf 4)http://%s:8069$(tput sgr0)\n" "${_VAR[IP]}"
   printf "\nTIP:\n  Adding or changing a server block are used\n  \`nginx --type=odoo\` command option.\n"
 }
 
@@ -3479,6 +3459,13 @@ cmd_wp() {
   _check_desktop && printf "%b\n" "${_CHAS_MESSAGE}" && exit 1
   cmd_help ${_CMD}
 }
+
+# Global Variables
+#
+declare -A _VAR
+_VAR[IP]="$(hostname -I | awk '{print $1}')"
+[[ "${_FORCE:-false}" ]] && _VAR[IP]="$(hostname -i)"
+[ -d /home/vagrant ] && _VAR[IP]="$(hostname -I | awk '{print $2}')"
 
 # Call the `_main` function after everything has been defined
 #
