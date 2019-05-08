@@ -327,16 +327,15 @@ _check_desktop() {
 #   setting  If not set or equal UTC
 #
 _check_timezone() {
-  _CUR_TIMEZONE="$(timedatectl | grep -e 'Time zone' | tr -s " " | cut -d ' ' -f 4)"
-  if [[ "${_CUR_TIMEZONE}" == "Etc/UTC" ]] || [[ "${_CUR_TIMEZONE}" == "" ]]; then
-    printf "Current timezone on system: %s\n" "${_CUR_TIMEZONE}"
+  if [[ "${_VAR[Timezone]}" == "Etc/UTC" ]] || [[ "${_VAR[Timezone]}" == "" ]]; then
+    printf "Current timezone on system: %s\n" "${_VAR[Timezone]}"
     read -p "Do you want to set a new timezone? [y/n] " REPLY
     if [[ "${REPLY:-}" =~ ^[Yy]$ ]]; then
-      local _TIMEZONE=$(whiptail --inputbox "\nEnter the new time zone (format: Continent/City):" 8 75 --title "Timezone Setting" 3>&1 1>&2 2>&3)
-      if [[ $(timedatectl list-timezones | grep "${_TIMEZONE}" &> /dev/null; echo $?) != "0" ]]; then
-        _error "invalid timezone --'${_TIMEZONE}'"
+      local _SET_TIMEZONE=$(whiptail --inputbox "\nEnter the new time zone (format: Continent/City):" 8 75 --title "Timezone Setting" 3>&1 1>&2 2>&3)
+      if [[ $(timedatectl list-timezones | grep "${_SET_TIMEZONE}" &> /dev/null; echo $?) != "0" ]]; then
+        _error "invalid timezone --'${_SET_TIMEZONE}'"
       else
-        sudo timedatectl set-timezone "${_TIMEZONE}" && whiptail --title "Success" --msgbox "The timezone changed to ${_TIMEZONE}." 7 80
+        sudo timedatectl set-timezone "${_SET_TIMEZONE}" && whiptail --title "Success" --msgbox "The timezone changed to ${_SET_TIMEZONE}." 7 80
       fi
     fi
   else
@@ -2975,7 +2974,7 @@ log_errors = On
 error_reporting = E_ALL
 display_errors = Off
 error_log = /var/log/php_error.log
-date.timezone = ${_CUR_TIMEZONE}
+date.timezone = ${_VAR[Timezone]}
 disable_functions = exec,shell_exec,pcntl_alarm,pcntl_fork,pcntl_waitpid,pcntl_wait,pcntl_wifexited,pcntl_wifstopped,pcntl_wifsignaled,pcntl_wifcontinued,pcntl_wexitstatus,pcntl_wtermsig,pcntl_wstopsig,pcntl_signal,pcntl_signal_dispatch,pcntl_get_last_error,pcntl_strerror,pcntl_sigprocmask,pcntl_sigwaitinfo,pcntl_sigtimedwait,pcntl_exec,pcntl_getpriority,pcntl_setpriority,
 EOF
 
@@ -3476,6 +3475,7 @@ _VAR[IP]="$(hostname -I | awk '{print $1}')"
 [ -d /home/vagrant ] && _VAR[IP]="$(hostname -I | awk '{print $2}')"
 _VAR[Firewall]="$(sudo ufw status | awk '{ printf $2 }')"
 _VAR[CPUs]="$(grep -c ^processor /proc/cpuinfo)" # number of CPUs/cores
+_VAR["Timezone"]="$(timedatectl | grep -e 'Time zone' | tr -s " " | cut -d ' ' -f 4)"
 
 # Call the `_main` function after everything has been defined
 #
