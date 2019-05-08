@@ -982,6 +982,7 @@ _system_info() {
   printf "$_HEADER" "NAME" "VALUE"
   printf "%50.50s\n" "$_BORDER"
   for _NAME in "${!_VAR[@]}"; do
+    [[ -z "${_VAR[$_NAME]}" ]] && _VAR[$_NAME]="n/a"
     printf "$_CONTENT" "$_NAME" "${_VAR[$_NAME]}"
   done | sort -n
   printf "%50.50s\n\n" "$_BORDER"
