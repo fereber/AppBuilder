@@ -311,7 +311,7 @@ _check_os_and_distro() {
 #
 _check_desktop() {
   # Check chassis
-  if [[ $(hostnamectl | grep Chassis | awk '{print $2}') == "vm" ]]; then
+  if [[ ${_VAR[Environment]} == "vm" ]]; then
     _CHAS_MESSAGE="This command \`${_CMD}\` helps building apps on desktop environment.\nIt's not recommended to run on server environment."
     return 1
   else
@@ -967,10 +967,16 @@ _system_error() {
 # Display system information
 #
 _system_info() {
-  hostnamectl
-  timedatectl
-  sudo ufw status
-  sudo lshw -short -c system -c memory -c processor
+  local _BORDER="--------------------------------------------------"
+  _BORDER=$_BORDER$_BORDER
+  local _HEADER="\n %-20s %-15s\n"
+  local _CONTENT=" %-20s %-15s\n"
+  printf "$_HEADER" "NAME" "VALUE"
+  printf "%50.50s\n" "$_BORDER"
+  for _NAME in "${!_VAR[@]}"; do
+    printf "$_CONTENT" "$_NAME" "${_VAR[$_NAME]}"
+  done | sort -n
+  printf "%50.50s\n\n" "$_BORDER"
 }
 
 # Creating a desktop file - Helper function for cmd_install()...
@@ -3201,7 +3207,7 @@ cmd_odoo() {
 
     # Config file
     _TOTAL_MEMORY_BYTES="$(free -b | grep Mem | awk '{print $2}')"
-    _MAX_WORKERS="$(grep -c ^processor /proc/cpuinfo)" # number of CPUs/cores
+    _MAX_WORKERS="${_VAR[CPUs]}" # number of CPUs/cores
 
     sudo bash -c "cat > /etc/odoo-server.conf" <<ODOCONFIG
 [options]
@@ -3463,9 +3469,13 @@ cmd_wp() {
 # Global Variables
 #
 declare -A _VAR
+_VAR[Environment]="$(hostnamectl | grep Chassis | awk '{print $2}')"
+_VAR[Hostname]="$HOSTNAME"
 _VAR[IP]="$(hostname -I | awk '{print $1}')"
 [[ "${_FORCE:-false}" ]] && _VAR[IP]="$(hostname -i)"
 [ -d /home/vagrant ] && _VAR[IP]="$(hostname -I | awk '{print $2}')"
+_VAR[Firewall]="$(sudo ufw status | awk '{ printf $2 }')"
+_VAR[CPUs]="$(grep -c ^processor /proc/cpuinfo)" # number of CPUs/cores
 
 # Call the `_main` function after everything has been defined
 #
