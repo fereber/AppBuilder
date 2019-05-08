@@ -1373,6 +1373,8 @@ ${_NGINX_NOTE}
                         [default: basic]
         --sub           Set subdomain alias
                         argument <sugdomainalias>
+        --php-admin     Enable PhpMyAmin for the server block [default: disable]
+                        (only works if type is php/fastcgi)
     -r, --root          Set server root path
                         [default: '/var/www/<domainname>/html']
     -s, --ssl           Enable https server [default: disable]
@@ -1396,7 +1398,7 @@ cmd_nginx() {
   local _DOMAIN=""
   local _SUB=""
   local _DISABLE_SITE=""
-  _OPTS_NGINX=$(getopt --options hficb:r:s,d: --long help,debug,install,config,block:,root:,ssl,type::,sub:,disable:,force --name "$(basename "${0}") ${_CMD}" -- "${@}")
+  _OPTS_NGINX=$(getopt --options hficb:r:s,d: --long help,debug,install,config,block:,root:,ssl,type::,php-admin,sub:,disable:,force --name "$(basename "${0}") ${_CMD}" -- "${@}")
   if [ $? != 0 ] ; then _error "invalid option(s)" ; fi
   eval set -- "${_OPTS_NGINX}"
 
@@ -1414,6 +1416,7 @@ cmd_nginx() {
           "basic"|"php"|"fastcgi"|"odoo"|"nodejs") _BLOCK_TYPE=${2} ; shift 2 ;;
           *) _error "unsupported type of server block -- '${2}'" ; shift ;;
         esac ;;
+      --php-admin) _PHP_ADMIN=true ; shift ;;
       -s|--ssl) _SSL=true ; shift ;;
       -d|--disable) _DISABLE_SITE="${2}" ; shift 2 ;;
       --force) _FORCE=true ; shift ;;
@@ -2017,28 +2020,6 @@ ExecStop=/bin/kill -s TERM \$MAINPID
 WantedBy=multi-user.target
 
 NGINXSERVICE
-    # Useful links:
-    #   https://www.nginx.com/resources/wiki/start/topics/examples/systemd/
-    #   http://nginx.org/en/docs/control.html
-
-    # [Unit]
-    # Description=Nginx - HTTP and reverse proxy server
-    # After=network.target nss-lookup.target
-    #
-    # [Service]
-    # Type=forking
-    # PIDFile=/run/nginx.pid
-    # ExecStartPre=/usr/sbin/nginx -t -q -g 'daemon on; master_process on;'
-    # ExecStart=/usr/sbin/nginx -g 'daemon on; master_process on;'
-    # # See https://github.com/angristan/nginx-autoinstall/issues/67
-    # ExecStartPost=/bin/sleep 0.1
-    # ExecReload=/usr/sbin/nginx -g 'daemon on; master_process on;' -s reload
-    # ExecStop=-/sbin/start-stop-daemon --quiet --stop --retry QUIT/5 --pidfile /run/nginx.pid
-    # TimeoutStopSec=5
-    # KillMode=mixed
-    #
-    # [Install]
-    # WantedBy=multi-user.target
 
     # Reload deamon because of the modify (update)
     if ${_RELOAD_DEMON:-}; then
@@ -2415,13 +2396,15 @@ BASICPHPBLOCK
 
           # Add Block: PhpMyAdmin
           #
-          sudo bash -c "cat >> /etc/nginx/conf.d/${_SUB}${_DOMAIN}.conf" <<PHPMYADMINBLOCK
+          if "${_PHP_ADMIN:-false}"; then
+            sudo bash -c "cat >> /etc/nginx/conf.d/${_SUB}${_DOMAIN}.conf" <<PHPMYADMINBLOCK
     ##
     # Php MyAdmin
     ##
     include /etc/nginx/snippets/phpmyadmin.conf;
 
 PHPMYADMINBLOCK
+          fi
         fi # ...end php
       fi # ...end if not Odoo
 
