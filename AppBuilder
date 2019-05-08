@@ -953,41 +953,6 @@ _java_settings() {
   fi
 }
 
-# Display error information (\`dmesg\`)
-#
-_system_error() {
-  if [[ $(dmesg --level=err,crit,emerg -H --time-format iso | grep -m1 :; echo $?) == 1 ]]; then
-    printf "There isn't error message.\n"
-  else
-    dmesg --level=err,crit,emerg -H --time-format iso
-  fi
-}
-
-# Display system information
-#
-_system_info() {
-
-  _VAR[Kernel]="$(uname -r)"
-  _VAR[Manufacturer]="$(sudo dmidecode -s system-manufacturer 2>/dev/null)"
-  _VAR[Model]="$(sudo dmidecode -s system-product-name 2>/dev/null)"
-  _VAR['Model Family']="$(sudo dmidecode -s system-family 2>/dev/null)"
-  _VAR['Model Serial Number']="$(sudo dmidecode -s system-serial-number 2>/dev/null)"
-  _VAR['CPU']="$(sudo dmidecode -s processor-version 2>/dev/null)"
-
-  printf "\nSystem Info - %s\n" "AppBuilder v${_VERSION}"
-  local _BORDER="--------------------------------------------------"
-  _BORDER=$_BORDER$_BORDER
-  local _HEADER="\n %-25s %-15s\n"
-  local _CONTENT=" %-25s %-15s\n"
-  printf "$_HEADER" "NAME" "VALUE"
-  printf "%50.50s\n" "$_BORDER"
-  for _NAME in "${!_VAR[@]}"; do
-    [[ -z "${_VAR[$_NAME]}" ]] && _VAR[$_NAME]="n/a"
-    printf "$_CONTENT" "$_NAME" "${_VAR[$_NAME]}"
-  done | sort -n
-  printf "%50.50s\n\n" "$_BORDER"
-}
-
 # Creating a desktop file - Helper function for cmd_install()...
 #
 # Args:
@@ -3471,6 +3436,42 @@ cmd_wp() {
 
   _check_desktop && printf "%b\n" "${_CHAS_MESSAGE}" && exit 1
   cmd_help ${_CMD}
+}
+
+# Display error information (\`dmesg\`)
+#
+_system_error() {
+  if [[ $(dmesg --level=err,crit,emerg -H --time-format iso | grep -m1 :; echo $?) == 1 ]]; then
+    printf "There isn't error message.\n"
+  else
+    dmesg --level=err,crit,emerg -H --time-format iso
+  fi
+}
+
+# Display system information
+#
+_system_info() {
+
+  _VAR[Kernel]="$(uname -r)"
+  _VAR['Model Manufacturer']="$(sudo dmidecode -s system-manufacturer 2>/dev/null)"
+  _VAR['Model Name']="$(sudo dmidecode -s system-product-name 2>/dev/null)"
+  _VAR['Model Family']="$(sudo dmidecode -s system-family 2>/dev/null)"
+  _VAR['Model Serial Number']="$(sudo dmidecode -s system-serial-number 2>/dev/null)"
+  _VAR['CPU']="$(sudo dmidecode -s processor-version 2>/dev/null)"
+  _VAR['Memory Total (GB)']="$(free --giga | grep Mem | awk '{print $2}')"
+
+  printf "\nSystem Info - %s\n" "AppBuilder v${_VERSION}"
+  local _BORDER="--------------------------------------------------"
+  _BORDER=$_BORDER$_BORDER
+  local _HEADER="\n %-25s %-15s\n"
+  local _CONTENT=" %-25s %-15s\n"
+  printf "$_HEADER" "NAME" "VALUE"
+  printf "%50.50s\n" "$_BORDER"
+  for _NAME in "${!_VAR[@]}"; do
+    [[ -z "${_VAR[$_NAME]}" ]] && _VAR[$_NAME]="n/a"
+    printf "$_CONTENT" "$_NAME" "${_VAR[$_NAME]}"
+  done | sort -n
+  printf "%50.50s\n\n" "$_BORDER"
 }
 
 # Global Variables
