@@ -2695,7 +2695,7 @@ cmd_mysql() {
 
   if [[ $(dpkg-query -W --showformat='${Status}\n' mysql-server 2>/dev/null | grep "install ok installed" &> /dev/null; echo $?) != 0 ]]; then
     # Set password for root user
-    _ROOT_MYSQL_PASS="$(whiptail --passwordbox "\nEnter root (strong) password for MySQL:" 8 78 --title "MySQL Server Installation" 3>&1 1>&2 2>&3)"
+    _ROOT_MYSQL_PASS="$(whiptail --passwordbox "\nEnter root (strong) password for MySQL:" 8 75 --title "MySQL Server Installation" 3>&1 1>&2 2>&3)"
 
     # Install MySQL server
     sudo apt -y install mysql-server
@@ -2805,12 +2805,15 @@ MYSQLCONFIG
     # Restart service
     sudo systemctl restart mysql || _error "restarting MySQL"
     printf "  ✔  MySQL Server is installed and configured\n"
+    printf "\n$(tput sitm)$(tput setaf 244)  You can add a new user (root privileges) with the following command:\n  \`%s\`$(tput sgr0)\n\n" "$(basename "${0}") mysql --add-user"
   fi
 
   if "${_ADD_NEW_USER:-false}"; then
     # Set name and password for new user
     _USER_MYSQL="$(whiptail --inputbox "\nEnter a new username for MysQL:" 8 75 --title "Add New MySQL User" 3>&1 1>&2 2>&3)"
-    _USER_MYSQL_PASS="$(whiptail --passwordbox "\nEnter your password:" 8 78 --title "Add New MySQL User" 3>&1 1>&2 2>&3)"
+    [[ $? == 1 ]] && exit
+    _USER_MYSQL_PASS="$(whiptail --passwordbox "\nEnter your password:" 8 75 --title "Add New MySQL User" 3>&1 1>&2 2>&3)"
+    [[ $? == 1 ]] && exit
 
     # Add new MySQL user with root privileges
     sudo mysql -u root <<EOF
