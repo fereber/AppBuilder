@@ -3457,7 +3457,7 @@ _system_info() {
   _VAR['Model Name']="$(sudo dmidecode -s system-product-name 2>/dev/null)"
   _VAR['Model Family']="$(sudo dmidecode -s system-family 2>/dev/null)"
   _VAR['Model Serial Number']="$(sudo dmidecode -s system-serial-number 2>/dev/null)"
-  _VAR['CPU']="$(sudo dmidecode -s processor-version 2>/dev/null)"
+  _VAR['CPU']="$(sudo dmidecode -s processor-version 2>/dev/null | uniq)"
   _VAR['Memory Total (GB)']="$(free --giga | grep Mem | awk '{print $2}')"
 
   printf "\nSystem Info - %s\n" "AppBuilder v${_VERSION}"
@@ -3480,7 +3480,9 @@ declare -A _VAR
 _VAR[Environment]="$(hostnamectl | grep Chassis | awk '{print $2}')"
 _VAR[Hostname]="$HOSTNAME"
 _VAR[IP]="$(hostname -I | awk '{print $1}')"
-[[ "${_FORCE:-false}" ]] && _VAR[IP]="$(hostname -i)"
+if "${_FORCE:-false}"; then
+  _VAR[IP]="$(hostname -i)"
+fi
 [ -d /home/vagrant ] && _VAR[IP]="$(hostname -I | awk '{print $2}')"
 _VAR[Firewall]="$(sudo ufw status 2>/dev/null | grep Status: | cut -d ' ' -f 2)"
 _VAR[CPUs]="$(grep -c ^processor /proc/cpuinfo)" # number of CPUs/cores
