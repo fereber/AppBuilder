@@ -2450,13 +2450,17 @@ FASTCGICACHEPATH
       else
         _SCHEME="http"
       fi
-      printf "\n  Don't forget, if you are used Vagrantbox:\n"
-      printf "  - add this entry to your \`/etc/hosts\` file (on host):\n    $(tput setaf 3)%s$(tput sgr0)\n" "${_HOST_CONTENT}"
 
-      if "${_SSL:-false}"; then
-        printf "  - go to ⇢  $(tput setaf 4)chrome://settings/certificates$(tput sgr0) and import the\n"
-        printf "    \`../${_SUB}${_DOMAIN}/letsencrypt/%s-local-fullchain.crt\`\n    file to the Chrome* web browser\n" "${_DOMAIN}"
-        printf "    $(tput sitm)$(tput setaf 244)* Chrome supports the self signed certificates$(tput sgr0)\n"
+      # Localhost specific message
+      if [ -d /home/vagrant ]; then
+        printf "\n  Don't forget, if you are used Vagrantbox:\n"
+        printf "  - add this entry to your \`/etc/hosts\` file (on host):\n    $(tput setaf 3)%s$(tput sgr0)\n" "${_HOST_CONTENT}"
+
+        if "${_SSL:-false}"; then
+          printf "  - go to ⇢  $(tput setaf 4)chrome://settings/certificates$(tput sgr0) and import the\n"
+          printf "    \`../${_SUB}${_DOMAIN}/letsencrypt/%s-local-fullchain.crt\`\n    file to the Chrome* web browser\n" "${_DOMAIN}"
+          printf "    $(tput sitm)$(tput setaf 244)* Chrome supports the self signed certificates$(tput sgr0)\n"
+        fi
       fi
 
       [[ "${_DOMAIN}" == "${_VAR[Hostname]}" ]] && _DOMAIN=${_VAR[IP]}
