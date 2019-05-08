@@ -687,6 +687,7 @@ cmd_menu(){
         "cmd_menu" "" \
         "cmd_menu" "SETTINGS" \
         "_nginx_block" "  Nginx Server Block" \
+        "_system_settings" "  Setting System" \
         "_menu_purge_cache" "  Purge FastCGI Cache" \
       3>&1 1>&2 2>&3)
   fi
