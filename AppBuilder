@@ -2799,6 +2799,13 @@ MYSQLCONFIG
     #
     # Location of files: `sudo find /var/lib/mysql -name '*.pem' -ls`
 
+    # Install password validation plugin
+    if [[ $(sudo mysql -u root -e "SELECT PLUGIN_NAME, PLUGIN_STATUS FROM INFORMATION_SCHEMA.PLUGINS WHERE PLUGIN_NAME LIKE 'validate%';" | grep ACTIVE &>/dev/null; echo $?) != 0 ]]; then
+      sudo mysql -u root <<EOF
+    INSTALL PLUGIN validate_password SONAME 'validate_password.so';
+EOF
+    fi
+
     # Allow UFW for MySQL
     sudo ufw allow mysql comment 'MySQL Server' &>/dev/null
 
@@ -2824,6 +2831,10 @@ GRANT ALL PRIVILEGES ON *.* TO '${_USER_MYSQL}'@'%' WITH GRANT OPTION;
 FLUSH PRIVILEGES;
 EOF
   fi
+  if [[ $? == 1 ]]; then
+    printf "\nCurrent password requirements for MySQL:\n"
+    sudo mysql -u root -e "SHOW VARIABLES LIKE 'validate%';"
+  fi
 
   if "${_BACKUP:-false}"; then
     # Back up database
@@ -2838,6 +2849,10 @@ EOF
 
     # Show users
     sudo mysql -u root -e  "SELECT User, Host, authentication_string FROM mysql.user;"
+
+    # Show password validation status
+    sudo mysql -u root -e "SELECT PLUGIN_NAME, PLUGIN_STATUS FROM INFORMATION_SCHEMA.PLUGINS WHERE PLUGIN_NAME LIKE 'validate%';"
+    sudo mysql -u root -e "SHOW VARIABLES LIKE 'validate%';"
   fi
 }
 
