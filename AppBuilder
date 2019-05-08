@@ -903,7 +903,7 @@ _system_settings() {
   sudo ufw default deny incoming
   sudo ufw default allow outgoing
   sudo ufw allow ssh comment 'Connection to ssh' && printf "  ⇢  Rule: Connection to ssh\n"
-  if [[ $(sudo ufw status 2>/dev/null | grep Status: | cut -d ' ' -f 2) != "active" ]]; then
+  if [[ "${_VAR[Firewall]}" != "active" ]]; then
     sudo ufw --force enable
   fi
   sudo ufw reload
@@ -966,6 +966,7 @@ _system_error() {
 # Display system information
 #
 _system_info() {
+  printf "\nSystem Info - %s\n" "AppBuilder v${_VERSION}"
   local _BORDER="--------------------------------------------------"
   _BORDER=$_BORDER$_BORDER
   local _HEADER="\n %-20s %-15s\n"
@@ -3473,7 +3474,7 @@ _VAR[Hostname]="$HOSTNAME"
 _VAR[IP]="$(hostname -I | awk '{print $1}')"
 [[ "${_FORCE:-false}" ]] && _VAR[IP]="$(hostname -i)"
 [ -d /home/vagrant ] && _VAR[IP]="$(hostname -I | awk '{print $2}')"
-_VAR[Firewall]="$(sudo ufw status | awk '{ printf $2 }')"
+_VAR[Firewall]="$(sudo ufw status 2>/dev/null | grep Status: | cut -d ' ' -f 2)"
 _VAR[CPUs]="$(grep -c ^processor /proc/cpuinfo)" # number of CPUs/cores
 _VAR["Timezone"]="$(timedatectl | grep -e 'Time zone' | tr -s " " | cut -d ' ' -f 4)"
 
