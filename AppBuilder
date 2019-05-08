@@ -289,7 +289,6 @@ _check_os_and_distro() {
     printf "Sorry! Can't be checked which distribution you are using!\nExiting...\n"
     exit 1
   else
-    _DISTRIB_ID=$(cat /etc/*-release 2>/dev/null | grep DISTRIB_ID | cut -d= -f2); _DISTRIB_CODENAME=$(cat /etc/*-release 2>/dev/null | grep DISTRIB_CODENAME | cut -d= -f2); _UBUNTU_CODENAME=$(cat /etc/*-release 2>/dev/null | grep UBUNTU_CODENAME | cut -d= -f2); _DISTRIB_DESCRIPTION=$(lsb_release -ds)
     if ! lsb_release -ds | grep -qE '(Ubuntu|Mint|elementary|Debian)'; then
       if ! (whiptail --title "Warning" --yesno "You are using a distribution that may not be full compatible with this script. Are you sure you want to continue?" 10 50); then
         exit 1
@@ -966,11 +965,19 @@ _system_error() {
 # Display system information
 #
 _system_info() {
+
+  _VAR[Kernel]="$(uname -r)"
+  _VAR[Manufacturer]="$(sudo dmidecode -s system-manufacturer 2>/dev/null)"
+  _VAR[Model]="$(sudo dmidecode -s system-product-name 2>/dev/null)"
+  _VAR['Model Family']="$(sudo dmidecode -s system-family 2>/dev/null)"
+  _VAR['Model Serial Number']="$(sudo dmidecode -s system-serial-number 2>/dev/null)"
+  _VAR['CPU']="$(sudo dmidecode -s processor-version 2>/dev/null)"
+
   printf "\nSystem Info - %s\n" "AppBuilder v${_VERSION}"
   local _BORDER="--------------------------------------------------"
   _BORDER=$_BORDER$_BORDER
-  local _HEADER="\n %-20s %-15s\n"
-  local _CONTENT=" %-20s %-15s\n"
+  local _HEADER="\n %-25s %-15s\n"
+  local _CONTENT=" %-25s %-15s\n"
   printf "$_HEADER" "NAME" "VALUE"
   printf "%50.50s\n" "$_BORDER"
   for _NAME in "${!_VAR[@]}"; do
@@ -1024,9 +1031,8 @@ _install_virtualbox() {
   # Install VirtualBox
   if [[ "${REPLY:-}" =~ ^[Yy]$ ]]; then
     if [ ! -f "/etc/apt/sources.list.d/virtualbox.list" ]; then
-      _UBUNTU_CODENAME="$(cat /etc/*-release 2>/dev/null | grep UBUNTU_CODENAME | cut -d= -f2)"
       sudo bash -c "cat > /etc/apt/sources.list.d/virtualbox.list" <<VBOXLIST
-    deb [arch=amd64] http://download.virtualbox.org/virtualbox/debian ${_UBUNTU_CODENAME} contrib
+    deb [arch=amd64] http://download.virtualbox.org/virtualbox/debian ${_VAR['Distro Ubuntu Codename']} contrib
 VBOXLIST
       wget -q https://www.virtualbox.org/download/oracle_vbox_2016.asc -O- | sudo apt-key add -
       wget -q https://www.virtualbox.org/download/oracle_vbox.asc -O- | sudo apt-key add -
@@ -1325,7 +1331,7 @@ cmd_vagrant() {
   ! _check_desktop && printf "%b\n" "${_CHAS_MESSAGE}" && exit 1
 
   local _PATH=""
-  local _IP="${_VAR[IP]}"
+  local _IP="192.168.33.10"
 
   # Options parser
   _OPTS_VAGRANT=$(getopt --options hp:i --long help,debug,path:,ip --name "$(basename "${0}") ${_CMD}" -- "${@}")
@@ -1461,7 +1467,6 @@ cmd_nginx() {
   local _VER_OPENSSL="1.1.1b"
   local _VER_GEOIP2="3.2"
   local _USER_WEB="www-data"
-  local _THIS_HOST=$(hostname)
 
   if hash nginx 2>/dev/null; then
     _VER_CUR_NGINX="$(echo $(nginx -v 2>&1) | cut -d/ -f 2)"
@@ -1950,8 +1955,8 @@ server {
     # SSL
     ##
     include /etc/nginx/snippets/ssl.conf;
-    ssl_certificate /etc/letsencrypt/live/${_THIS_HOST}/fullchain.pem;
-    ssl_certificate_key /etc/letsencrypt/live/${_THIS_HOST}/privkey.pem;
+    ssl_certificate /etc/letsencrypt/live/${_VAR[Hostname]}/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/${_VAR[Hostname]}/privkey.pem;
 
     ##
     # SSL Stapling
@@ -2112,7 +2117,7 @@ NGINXSERVICE
     _LETSENCRYPT_PATH=/var/www/${_SUB}${_DOMAIN}/letsencrypt
 
     # Only in case of testing on localhost
-    if [[ "${_DOMAIN}" == "${_THIS_HOST}" ]]; then
+    if [[ "${_DOMAIN}" == "${_VAR[Hostname]}" ]]; then
       _ROOT_PATH=/var/www/default_server/html
       _CACHE_PATH=/var/www/default_server/cache
       _LETSENCRYPT_PATH=/var/www/default_server/letsencrypt
@@ -2140,7 +2145,7 @@ NGINXSERVICE
     if [[ "${REPLY:-}" =~ ^[Yy]$ ]]; then
 
       # Set FQDN
-      _FQDN="${_VAR[IP]} ${_THIS_HOST}.${_DOMAIN} ${_THIS_HOST}"
+      _FQDN="${_VAR[IP]} ${_VAR[Hostname]}.${_DOMAIN} ${_VAR[Hostname]}"
       grep "${_FQDN}" /etc/hosts &>/dev/null || printf "%s\n" "${_FQDN}" | sudo tee -a /etc/hosts > /dev/null
 
       # Create server path
@@ -2504,7 +2509,7 @@ FASTCGICACHEPATH
         printf "    $(tput sitm)$(tput setaf 244)* Chrome supports the self signed certificates$(tput sgr0)\n"
       fi
 
-      [[ "${_DOMAIN}" == "${_THIS_HOST}" ]] && _DOMAIN=${_VAR[IP]}
+      [[ "${_DOMAIN}" == "${_VAR[Hostname]}" ]] && _DOMAIN=${_VAR[IP]}
       printf "\n  Open up your web browser and navigate to following url:\n  ⇢  $(tput setaf 4)%s://%s$(tput sgr0)\n" "${_SCHEME}" "${_SUB}${_DOMAIN}"
       if [ -d "/home/vagrant" ]; then
         # Info if MailCatcher running (Set your favourite app to deliver to local smtp://127.0.0.1:1025 instead of your default SMTP server.)
@@ -2557,7 +2562,7 @@ _ssl_certificate() {
       #   --block VPS --ssl     Default host available at https://192.168.33.10
       #                         after you imported the VPS-fullchain crt. file(s) to the Chrome web browser
       #
-      if [[ "${_DOMAIN}" == "${_THIS_HOST}" ]]; then
+      if [[ "${_DOMAIN}" == "${_VAR[Hostname]}" ]]; then
         sudo sed -i "s/^# Extensions for a typical CA/subjectAltName=IP:${_VAR[IP]}/g" /tmp/openssl.${_DOMAIN}.cnf
       else
         sudo sed -i "s/^# Extensions for a typical CA/subjectAltName=DNS:${_DOMAIN}, DNS:www.${_DOMAIN}, DNS:*.${_DOMAIN}/g" /tmp/openssl.${_DOMAIN}.cnf
@@ -3476,7 +3481,10 @@ _VAR[IP]="$(hostname -I | awk '{print $1}')"
 [ -d /home/vagrant ] && _VAR[IP]="$(hostname -I | awk '{print $2}')"
 _VAR[Firewall]="$(sudo ufw status 2>/dev/null | grep Status: | cut -d ' ' -f 2)"
 _VAR[CPUs]="$(grep -c ^processor /proc/cpuinfo)" # number of CPUs/cores
-_VAR["Timezone"]="$(timedatectl | grep -e 'Time zone' | tr -s " " | cut -d ' ' -f 4)"
+_VAR[Timezone]="$(timedatectl | grep -e 'Time zone' | tr -s " " | cut -d ' ' -f 4)"
+_VAR[Distribution]=$(cat /etc/*-release 2>/dev/null | grep DISTRIB_ID | cut -d= -f2)
+_VAR['Distro Codename']=$(cat /etc/*-release 2>/dev/null | grep DISTRIB_CODENAME | cut -d= -f2)
+_VAR['Distro Ubuntu Codename']=$(cat /etc/*-release 2>/dev/null | grep UBUNTU_CODENAME | cut -d= -f2)
 
 # Call the `_main` function after everything has been defined
 #
