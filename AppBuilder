@@ -107,6 +107,7 @@ _APP_DEV+=( python3-pip )                         ; _APP_INSTALL[python3-pip]="-
 # _APP_DEV+=( vagrant )                             ; _APP_INSTALL[vagrant]="--deb https://releases.hashicorp.com/vagrant/2.2.4/vagrant_2.2.4_x86_64.deb"
 _APP_DEV+=( virtualbox )                          ; _APP_INSTALL[virtualbox]="--fun _install_virtualbox"
 _APP_DEV+=( vagrant )                             ; _APP_INSTALL[vagrant]="--fun _install_vagrant"
+_APP_DEV+=( node )                                ; _APP_INSTALL[node]="--fun cmd_nodejs"
 _APP_DEV+=( mysql-server )                        ; _APP_INSTALL[mysql-server]="--fun cmd_mysql"
 _APP_DEV+=( poedit )                              ; _APP_INSTALL[poedit]="--pack"
 _APP_DEV+=( gnome-builder )                       ; _APP_INSTALL[gnome-builder]="--pack" # + sysprof
@@ -407,7 +408,6 @@ _check_package_exists() {
     let _COUNT+=1
     _SOURCE+=( pack )
   fi
-  # Software Source: AppImage
   if [[ $(type -P "${_PACKAGE}" &> /dev/null; echo $?) == 0 ]]; then
     let _COUNT+=1
     if [ "$(type -P "${_PACKAGE}")" == "/usr/bin/${_PACKAGE}" ]; then
@@ -415,8 +415,11 @@ _check_package_exists() {
         _SOURCE+=( pack )
       fi
     fi
-    if [ "$(type -P "${_PACKAGE}")" == "$HOME/.local/bin/${_PACKAGE}" ]; then
-      _SOURCE+=( appimg )
+    if [ "$(type -P "${_PACKAGE}")" == "$HOME/.local/bin" ]; then
+      _SOURCE+=( \~/.local/bin )
+    fi
+    if [[ "$(type -P "${_PACKAGE}")" == *"$HOME/.nvm"* ]]; then
+      _SOURCE+=( \~/.nvm )
     fi
     if [ -f "/usr/local/share/${_PACKAGE}/Makefile" ]; then
       _SOURCE+=( complied )
@@ -684,6 +687,7 @@ cmd_menu(){
         "cmd_mysql" "  MySQL" \
         "cmd_php" "  Php" \
         "cmd_odoo" "  Odoo" \
+        "cmd_nodejs" "  Node" \
         "cmd_menu" "" \
         "cmd_menu" "SETTINGS" \
         "_nginx_block" "  Nginx Server Block" \
