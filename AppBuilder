@@ -3339,9 +3339,6 @@ ODOOINIT
 # COMMAND: Node.js
 #
 _HELP[nodejs]=$(cat << HELPNODEJS
-
-            COMING SOON!!!
-
 The \`nodejs\` command buids a Node.JS web server.
 
   Usage:
@@ -3368,7 +3365,42 @@ cmd_nodejs() {
     esac
   done
 
-  cmd_help ${_CMD}
+  local _VER_LAT_NVM="$(curl -s "https://api.github.com/repos/nvm-sh/nvm/releases/latest" | awk -F '"' '/tag_name/{print $4}' | cut -dv -f2)"
+  local _VER_CUR_NVM="0"
+
+  if [ -f ~/.nvm/nvm.sh ]; then
+    source ~/.nvm/nvm.sh
+    source ~/.profile
+    source ~/.bashrc
+    _VER_CUR_NVM="$(nvm --version)"
+  fi
+
+  # Install or update automatically latest Node Version Manager
+  if _check_version "${_VER_LAT_NVM}" "${_VER_CUR_NVM}" ; then
+    mkdir -p ~/.nvm
+    sudo apt -y install build-essential libssl-dev
+
+    wget -qO- https://raw.githubusercontent.com/creationix/nvm/v${_VER_LAT_NVM}/install.sh | bash
+    source ~/.nvm/nvm.sh
+    source ~/.profile
+    source ~/.bashrc
+
+  fi
+
+  # To check if nvm is running
+  if $(nvm &>/dev/null); then
+    printf "  ✔  Node Version Manager (%s) is running and up to date\n" "$(nvm --version)"
+  else
+    _error "Node Version Manager isn't running" # exiting..
+  fi
+
+  # Install Node
+  if ! hash node 2>/dev/null; then
+    nvm install --lts   # Install (long-term support) versions
+    nvm install node    # Install latest version
+    # nvm use node      # Use latest version
+    # nvm ls            # List installed versions
+  fi
 }
 
 # COMMAND: Apache
