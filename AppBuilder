@@ -906,7 +906,7 @@ _system_settings() {
   # UFW enable
   sudo ufw default deny incoming
   sudo ufw default allow outgoing
-  sudo ufw allow ssh comment 'Connection to ssh' && printf "  ⇢  Rule: Connection to ssh\n"
+  sudo ufw allow ssh comment 'Connection to ssh' &>/dev/null  && printf "  ⇢  Ufw rule: allow SSH\n"
   if [[ "${_VAR[Firewall]}" != "active" ]]; then
     sudo ufw --force enable
   fi
@@ -1533,7 +1533,7 @@ cmd_nginx() {
         sudo update-rc.d cron defaults
       fi
       # Allow UFW for MailCatcher
-      sudo ufw allow 1080 comment 'MailCatcher' &>/dev/null
+      sudo ufw allow 1080 comment 'MailCatcher' &>/dev/null  && printf "  ⇢  Ufw rule: allow MailCatcher\n"
     fi
 
     # You can verify compiler support for __uint128_t with the following
@@ -1613,7 +1613,7 @@ title=Web Server (Nginx, HTTP + HTTPS)
 description=Small, but very powerful and efficient web server
 ports=80,443/tcp
 NGINXUFW
-    sudo ufw allow 'Nginx Full' comment 'Web Server (HTTP + HTTPS)' > /dev/null
+    sudo ufw allow 'Nginx Full' comment 'Web Server (HTTP + HTTPS)' &>/dev/null  && printf "  ⇢  Ufw rule: allow Nginx Full\n"
 
     # Restoring all server config files
     if [ -d "/etc/nginx_backup_${_BACKUP_TIME:-}" ]; then
@@ -2889,7 +2889,7 @@ EOF
     fi
 
     # Allow UFW for MySQL
-    sudo ufw allow mysql comment 'MySQL Server' &>/dev/null
+    sudo ufw allow mysql comment 'MySQL Server' &>/dev/null  && printf "  ⇢  Ufw rule: allow MySQL\n"
 
     # Restart service
     sudo systemctl restart mysql || _error "restarting MySQL"
@@ -3220,9 +3220,6 @@ cmd_odoo() {
     python -c "import odoo.api"
     cd
 
-    # Allow UFW for Odoo
-    sudo ufw allow 8069/tcp comment 'Odoo Server'
-
     # Enable config at first install
     _CONFIG=true
   else
@@ -3375,7 +3372,7 @@ ODOOINIT
     sudo chmod 640 /etc/odoo-server.conf
 
     # Allow UFW for Odoo
-    sudo ufw allow 8069/tcp comment 'Odoo Server' > /dev/null
+    sudo ufw allow 8069/tcp comment 'Odoo Server' &>/dev/null  && printf "  ⇢  Ufw rule: allow Odoo server\n"
 
     # Odoo service
     if [[ $(systemctl status odoo-server | grep Active: | cut -d ' ' -f 5) != "active" ]]; then
