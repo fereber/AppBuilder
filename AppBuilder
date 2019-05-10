@@ -491,7 +491,7 @@ _check_dependencies() {
 #   _error "Error message. Variable: $0"
 #
 _error() {
-  printf "\n$(tput bold)$(tput setaf 1) ✖ Error: %s$(tput sgr0)\n\n" "${*}" 1>&2
+  printf "\n$(tput bold)$(tput setaf 1)  ✖  Error: %s$(tput sgr0)\n\n" "${*}" 1>&2
   exit 1
 }
 
@@ -2114,6 +2114,7 @@ NGINXSERVICE
       # Create quickly an application skeleton if not exists
       if [[ "${_BLOCK_TYPE:-basic}" == "nodejs" ]]; then
         if [ ! -f "/var/www/${_SUB}${_DOMAIN}/bin/www" ]; then
+          cd /var/www
           cmd_nodejs -a ${_SUB}${_DOMAIN}
         fi
       fi
@@ -3495,8 +3496,16 @@ cmd_nodejs() {
 
   # Generate an application (https://expressjs.com/en/starter/generator.html)
   if [[ -n "${_APP_NAME:-}" ]]; then
-    if [[ ! "$PWD" =~ ^/var/www(.*) ]]; then
-      _error "change the working directory to \`/var/www\` and run command again"
+    if ! _check_desktop; then
+      if [[ ! "$PWD" =~ ^/var/www(.*) ]]; then
+        _error "change the working directory to \`/var/www\` and run command again"
+      fi
+    else
+      printf "\nCreating an application for Node.js here:\n- current working directory $(tput setaf 3)%s$(tput sgr0)\n" "$PWD"
+      read -p "Are you sure? [y/n] " REPLY
+      if [[ "${REPLY:-}" =~ ^[Nn]$ ]]; then
+        printf "Exiting...\n" && exit
+      fi
     fi
     sudo express --view=ejs ${_APP_NAME}
     cd $PWD/${_APP_NAME}
