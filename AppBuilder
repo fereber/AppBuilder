@@ -1045,7 +1045,7 @@ _install_vagrant() {
     _INSTALL=true
   fi
   # Install Vagrant
-  if ${_INSTALL:-false}; then
+  if "${_INSTALL:-false}"; then
     if [ ! -f "/tmp/vagrant_${_VER_LAT_VAGRANT}_x86_64.deb" ]; then
       wget https://releases.hashicorp.com/vagrant/${_VER_LAT_VAGRANT}/vagrant_${_VER_LAT_VAGRANT}_x86_64.deb -O /tmp/vagrant_${_VER_LAT_VAGRANT}_x86_64.deb
     fi
@@ -1380,7 +1380,7 @@ ${_NGINX_NOTE}
         --php-admin     Enable PhpMyAmin for the server block [default: disable]
                         (only works if type is php/fastcgi)
     -r, --root          Set server root path
-                        [default: '/var/www/<domainname>/html']
+                        [default: '/var/www/<domainname>/public']
     -s, --ssl           Enable https server [default: disable]
                         all server certificate is located in this folder:
                         '/etc/letsencrypt/live/'
@@ -1633,7 +1633,7 @@ NGINXUFW
     # Manage server directories
     sudo mkdir -p \
       /etc/{nginx/conf.d,nginx/snippets,letsencrypt} \
-      /var/www/default_server/{html,cache,letsencrypt}
+      /var/www/default_server/{public,cache,letsencrypt}
     if [ -d "/etc/nginx/html" ]; then sudo rm -rf /etc/nginx/html; fi
 
     # Set ownership and permissions
@@ -1737,6 +1737,7 @@ http {
     ##
     # NodeJS server
     ##
+    include /etc/nginx/snippets/upstream_node_*.conf;
 
     ##
     # Including serever block configurations
@@ -1889,7 +1890,7 @@ NGINXLOGROTATE
 server {
     listen 80 default_server;
     server_name _;
-    root /var/www/default_server/html;
+    root /var/www/default_server/public;
 
     ##
     # Let's Encrypt Settings
@@ -1914,7 +1915,7 @@ server {
 server {
     listen 443 ssl http2 default_server;
     server_name _;
-    root /var/www/default_server/html;
+    root /var/www/default_server/public;
 
     ##
     # Let's Encrypt Settings
@@ -1956,7 +1957,7 @@ HTTPSDEFAULTBLOCK
 server {
     listen 80 default_server;
     server_name _;
-    root /var/www/default_server/html;
+    root /var/www/default_server/public;
 
     location ^~ /.well-known/acme-challenge/ {
         allow all;
@@ -1981,7 +1982,7 @@ HTTPDEFAULTBLOCK
     fi
 
     # Index file
-    sudo bash -c "cat > /var/www/default_server/html/index.html" <<INDEXHTML
+    sudo bash -c "cat > /var/www/default_server/public/index.html" <<INDEXHTML
 <!DOCTYPE html>
 <html lang="en">
   <head>
@@ -1998,13 +1999,13 @@ HTTPDEFAULTBLOCK
 INDEXHTML
 
     # Add blank favicon.ico
-    if [ ! -f "/var/www/default_server/html/favicon.ico" ]; then
-      sudo touch /var/www/default_server/html/favicon.ico
+    if [ ! -f "/var/www/default_server/public/favicon.ico" ]; then
+      sudo touch /var/www/default_server/public/favicon.ico
     fi
 
     # Nginx init script
     if [ -f "/lib/systemd/system/nginx.service" ]; then
-      _RELOAD_DEMON=true
+      _RELOAD_DEAMON=true
     fi
     sudo bash -c "cat > /lib/systemd/system/nginx.service" <<NGINXSERVICE
 [Unit]
@@ -2026,7 +2027,7 @@ WantedBy=multi-user.target
 NGINXSERVICE
 
     # Reload deamon because of the modify (update)
-    if ${_RELOAD_DEMON:-}; then
+    if "${_RELOAD_DEAMON:-false}"; then
       sudo systemctl daemon-reload > /dev/null
     fi
 
@@ -2063,14 +2064,14 @@ NGINXSERVICE
     if "${_CUSTOM_ROOT:-false}"; then
       _ROOT_PATH=/var/www${_ROOT_PATH}
     else
-      _ROOT_PATH=/var/www/${_SUB}${_DOMAIN}/html
+      _ROOT_PATH=/var/www/${_SUB}${_DOMAIN}/public
     fi
     _CACHE_PATH=/var/www/${_SUB}${_DOMAIN}/cache
     _LETSENCRYPT_PATH=/var/www/${_SUB}${_DOMAIN}/letsencrypt
 
     # Only in case of testing on localhost
     if [[ "${_DOMAIN}" == "${_VAR[Hostname]}" ]]; then
-      _ROOT_PATH=/var/www/default_server/html
+      _ROOT_PATH=/var/www/default_server/public
       _CACHE_PATH=/var/www/default_server/cache
       _LETSENCRYPT_PATH=/var/www/default_server/letsencrypt
       _ssl_certificate
@@ -2082,6 +2083,20 @@ NGINXSERVICE
     printf "\nCreating or updating a Nginx server block for %s\n\n" "${_SUB}${_DOMAIN}"
     printf "  - domain:              %s\n" "${_SUB}${_DOMAIN}"
     printf "  - type:                %s\n" "${_BLOCK_TYPE:-basic}"
+    if [[ "${_BLOCK_TYPE:-basic}" == "nodejs" ]]; then
+      if [ -f "/etc/nginx/snippets/upstream_node_${_SUB}${_DOMAIN}.conf" ]; then
+        _PORT=$(cat /etc/nginx/snippets/upstream_node_${_SUB}${_DOMAIN}.conf | grep server | cut -d: -f2 | cut -d';' -f1)
+      else
+        # Generate new port
+        _PORT=$(cat /etc/nginx/snippets/upstream_node* 2>/dev/null | sort -r | grep -m1 server | cut -d: -f2 | cut -d';' -f1)
+        if [[ -z "${_PORT}" ]]; then
+          _PORT=3000
+        fi
+        let _PORT+=1
+        _RELOAD_PM2=true
+      fi
+      printf "  - port:                %s\n" "${_PORT}"
+    fi
     printf "  - root path:           %s\n" "${_ROOT_PATH}"
     printf "  - ssl:                 %s\n" "${_SSL:-false}"
     if "${_SSL:-false}"; then
@@ -2104,8 +2119,9 @@ NGINXSERVICE
       sudo mkdir -p {${_ROOT_PATH},${_CACHE_PATH},${_LETSENCRYPT_PATH}}
 
       # Add index file
-      if [ ! -f "${_ROOT_PATH}/index.html" ]; then
-        sudo bash -c "cat > "${_ROOT_PATH}"/index.html" <<INDEXHTML
+      if [[ "${_BLOCK_TYPE:-basic}" != "nodejs" ]]; then
+        if [ ! -f "${_ROOT_PATH}/index.html" ]; then
+          sudo bash -c "cat > "${_ROOT_PATH}"/index.html" <<INDEXHTML
 <!DOCTYPE html>
 <html lang="en">
     <head>
@@ -2120,6 +2136,16 @@ NGINXSERVICE
     </body>
 </html>
 INDEXHTML
+        fi
+      else
+        # Remove index.html if exists
+        if [ -f "${_ROOT_PATH}/index.html" ]; then
+          sudo rm ${_ROOT_PATH}/index.html
+        fi
+        if [[ $(grep "title: 'Express'" /var/www/${_SUB}${_DOMAIN}/routes/index.js &>/dev/null; echo $?) == 0 ]]; then
+          sudo sed -i "s/title: 'Express'/title: '${_SUB}${_DOMAIN}'/g" /var/www/${_SUB}${_DOMAIN}/routes/index.js
+          _RELOAD_PM2=true
+        fi
       fi
 
       # Add blank favicon.ico
@@ -2294,7 +2320,44 @@ LOGBLOCK
     }
 
 ODOOBLOCK
-      else # ...end if Odoo
+
+      elif [[ "${_BLOCK_TYPE:-basic}" == "nodejs" ]]; then
+
+        # Add Block: Node
+        #
+        sudo bash -c "cat >> /etc/nginx/conf.d/${_SUB}${_DOMAIN}.conf" <<NODEBLOCK
+    ##
+    # Redirect requests to node backend server
+    ##
+    location / {
+      proxy_redirect off;
+      proxy_pass http://node_${_SUB}${_DOMAIN};
+      include /etc/nginx/snippets/proxy.conf;
+    }
+
+NODEBLOCK
+
+        # Node config
+        if [ ! -f "/etc/nginx/snippets/upstream_node_${_SUB}${_DOMAIN}.conf" ]; then
+          sudo bash -c "cat > /etc/nginx/snippets/upstream_node_${_SUB}${_DOMAIN}.conf" <<UPSTREAMNDOE
+upstream node_${_SUB}${_DOMAIN} {
+    server 127.0.0.1:${_PORT};
+}
+
+UPSTREAMNDOE
+        fi
+
+        # Set the port
+        if [ -f "/var/www/${_SUB}${_DOMAIN}/bin/www" ]; then
+          if [[ $(grep "process.env.PORT || ${_PORT}" /var/www/${_SUB}${_DOMAIN}/bin/www &>/dev/null; echo $?) != 0 ]]; then
+            sudo sed -i 's/^var port = normalizePort.*/var port = normalizePort(process.env.PORT || '${_PORT}');/g' /var/www/${_SUB}${_DOMAIN}/bin/www
+          fi
+        else
+          printf "\nApparently there isn't an existing Node.js application in this location.\n"
+          printf "Create one first with \`%s\` command,\nthen set the nginx server block for the application.\n" "$(basename "${0}") nodejs --app ${_SUB}${_DOMAIN}"
+          _error "missing existing Node App"
+        fi
+      else # ...end if Odoo or Node
 
         # Add Block: 404 fall back
         #
@@ -2441,6 +2504,9 @@ FASTCGICACHEPATH
 
       # Reload Nginx
       sudo nginx -s reload || _error "reloading Nginx -- 'after adding a server block'"
+      if "${_RELOAD_PM2:-false}"; then
+        sudo pm2 reload ${_DOMAIN} --update-env || _error "reloading package manager"
+      fi
       printf "\n  ✔  Server block for %s is ready!\n" "${_SUB}${_DOMAIN}"
 
       # Print message(s)
@@ -3258,7 +3324,7 @@ ODOCONFIG
 
     # Odoo init script
     if [ -f"/lib/systemd/system/odoo-server.service" ]; then
-      _RELOAD_DEMON=true
+      _RELOAD_DEAMON=true
     fi
 
     sudo bash -c "cat > /lib/systemd/system/odoo-server.service" <<ODOOINIT
@@ -3280,7 +3346,7 @@ WantedBy=multi-user.target
 ODOOINIT
 
     # Reload deamon because of the modify (update)
-    if "${_RELOAD_DEMON:-false}"; then
+    if "${_RELOAD_DEAMON:-false}"; then
       sudo systemctl daemon-reload > /dev/null
     fi
 
@@ -3349,6 +3415,8 @@ The \`nodejs\` command buids a Node.JS web server.
     $(basename "${0}") nodejs [options] [<arguments>...]
 
   Options:
+    -a, --app <name>    Create an application (with express)
+                        in the current working directory
     -h, --help          Display this help
         --debug         Run debug mode
 HELPNODEJS
@@ -3356,7 +3424,7 @@ HELPNODEJS
 
 cmd_nodejs() {
   # Options parser
-  _OPTS_NODEJS=$(getopt --options h --long help,debug --name "$(basename "${0}") ${_CMD}" -- "${@}")
+  _OPTS_NODEJS=$(getopt --options ha: --long help,debug,app: --name "$(basename "${0}") ${_CMD}" -- "${@}")
   if [ $? != 0 ] ; then _error "invalid option(s)" ; fi
   eval set -- "${_OPTS_NODEJS}"
 
@@ -3364,6 +3432,7 @@ cmd_nodejs() {
     case "${1}" in
       -h|--help) cmd_help ${_CMD}; shift ;;
       --debug) set -x ; _DEBUG=true ; shift ;;
+      -a|--app) _APP_NAME="${2}" ; shift 2 ;;
       --) shift ; break ;;
       *) _error "internal option error '${1}'" ;;
     esac
@@ -3383,12 +3452,10 @@ cmd_nodejs() {
   if _check_version "${_VER_LAT_NVM}" "${_VER_CUR_NVM}" ; then
     mkdir -p ~/.nvm
     sudo apt -y install build-essential libssl-dev
-
     wget -qO- https://raw.githubusercontent.com/creationix/nvm/v${_VER_LAT_NVM}/install.sh | bash
     source ~/.nvm/nvm.sh
     source ~/.profile
     source ~/.bashrc
-
   fi
 
   # To check if nvm is running
@@ -3400,10 +3467,45 @@ cmd_nodejs() {
 
   # Install Node
   if ! hash node 2>/dev/null; then
-    nvm install --lts   # Install (long-term support) versions
+    # nvm install --lts   # Install (long-term support) versions
     nvm install node    # Install latest version
-    # nvm use node      # Use latest version
+    nvm alias default v${_VER_LAT_NVM}
+    nvm use defaul
     # nvm ls            # List installed versions
+
+    # Install application generator tool for Node.js
+    npm install -g express-generator
+    # Install process manager for Node.js
+    npm install -g pm2
+    # Starting an app: `pm2 start app.js `
+
+    # Set the permissions so that all users can access the node
+    local _NODE_PATH=$(which node)
+    _NODE_PATH=${_NODE_PATH%/bin/node}
+    chmod -R 755 $_NODE_PATH/bin/*
+    sudo ln -sf $_NODE_PATHn/{bin,lib,share} /usr/local
+
+    _START_NODE_SERVICE=true
+  fi
+
+  # Generate an application (https://expressjs.com/en/starter/generator.html)
+  if [[ -n "${_APP_NAME:-}" ]]; then
+    sudo express --view=ejs ${_APP_NAME}
+    cd $PWD/${_APP_NAME}
+    sudo npm install
+    sudo pm2 start ./bin/www -n ${_APP_NAME}
+    if _check_desktop; then
+      printf "\n  Open up your web browser and navigate to following url:\n  ⇢  $(tput setaf 4)http://localhost:3000$(tput sgr0)\n"
+    fi
+  fi
+
+  # Init script (http://pm2.keymetrics.io/docs/usage/startup/)
+  if "${_START_NODE_SERVICE:-false}"; then
+    local _VER_NODE="$(node -v)"
+    # pm2 startup
+    sudo env PATH=$PATH:${HOME}/.nvm/versions/node/${_VER_NODE}/bin $HOME/.nvm/versions/node/${_VER_NODE}/lib/node_modules/pm2/bin/pm2 startup systemd -u $USER --hp $HOME
+    sudo pm2 save
+    # Remove init script: `pm2 unstartup systemd`
   fi
 }
 
