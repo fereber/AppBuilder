@@ -534,7 +534,7 @@ _main() {
 
     # Options parser
     _OPTS=$(getopt --options h,u,c,i,e,s,v --long help,debug,update,clean,info,error,setting,version --name "$(basename "${0}")" -- "${@}")
-    if [ $? != 0 ] ; then _error "invalid option(s)" ; fi
+    if [ $? != 0 ] ; then _error "invalid option(s) or missing command" ; fi
     eval set -- "${_OPTS}"
 
     while true ; do
