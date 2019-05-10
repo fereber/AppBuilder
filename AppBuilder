@@ -2111,6 +2111,13 @@ NGINXSERVICE
 
     if [[ "${REPLY:-}" =~ ^[Yy]$ ]]; then
 
+      # Create quickly an application skeleton if not exists
+      if [[ "${_BLOCK_TYPE:-basic}" == "nodejs" ]]; then
+        if [ ! -f "/var/www/${_SUB}${_DOMAIN}/bin/www" ]; then
+          cmd_nodejs -a ${_SUB}${_DOMAIN}
+        fi
+      fi
+
       # Set FQDN
       _FQDN="${_VAR[IP]} ${_VAR[Hostname]}.${_DOMAIN} ${_VAR[Hostname]}"
       grep "${_FQDN}" /etc/hosts &>/dev/null || printf "%s\n" "${_FQDN}" | sudo tee -a /etc/hosts > /dev/null
@@ -3467,11 +3474,7 @@ cmd_nodejs() {
 
   # Install Node
   if ! hash node 2>/dev/null; then
-    # nvm install --lts   # Install (long-term support) versions
-    nvm install node    # Install latest version
-    nvm alias default v${_VER_LAT_NVM}
-    nvm use defaul
-    # nvm ls            # List installed versions
+    nvm install node
 
     # Install application generator tool for Node.js
     npm install -g express-generator
@@ -3483,13 +3486,18 @@ cmd_nodejs() {
     local _NODE_PATH=$(which node)
     _NODE_PATH=${_NODE_PATH%/bin/node}
     chmod -R 755 $_NODE_PATH/bin/*
-    sudo ln -sf $_NODE_PATHn/{bin,lib,share} /usr/local
-
+    # sudo cp -r $_NODE_PATH/{bin,lib,share} /usr/local
+    sudo ln -sf $_NODE_PATH/bin/* /usr/local/bin/
+    sudo ln -sf $_NODE_PATH/lib/* /usr/local/lib/
+    sudo ln -sf $_NODE_PATH/share/* /usr/local/share/
     _START_NODE_SERVICE=true
   fi
 
   # Generate an application (https://expressjs.com/en/starter/generator.html)
   if [[ -n "${_APP_NAME:-}" ]]; then
+    if [[ ! "$PWD" =~ ^/var/www(.*) ]]; then
+      _error "change the working directory to \`/var/www\` and run command again"
+    fi
     sudo express --view=ejs ${_APP_NAME}
     cd $PWD/${_APP_NAME}
     sudo npm install
@@ -3497,6 +3505,7 @@ cmd_nodejs() {
     if _check_desktop; then
       printf "\n  Open up your web browser and navigate to following url:\n  ⇢  $(tput setaf 4)http://localhost:3000$(tput sgr0)\n"
     fi
+    sudo pm2 save
   fi
 
   # Init script (http://pm2.keymetrics.io/docs/usage/startup/)
