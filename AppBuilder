@@ -961,6 +961,9 @@ _system_settings() {
     if [[ $(cat '/etc/default/apport' | grep -q 'enabled=0'; echo $?) != 0 ]]; then
       sudo sed -i "s/enabled=1/enabled=0/g" /etc/default/apport
     fi
+
+    # Displaying hidden startup applications
+    sudo sed -i "s/NoDisplay=true/NoDisplay=false/g" /etc/xdg/autostart/*.desktop
   fi
 }
 
