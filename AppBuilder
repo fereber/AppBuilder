@@ -892,14 +892,18 @@ _system_update() {
 # Script updating from GitHub
 #
 _script_update() {
-  local _PATH_TO_THIS_SCRIPT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/$(basename "$0")"
-  # Check if file is a symbolic link and if yes get real link
-  if [[ -L "${_PATH_TO_THIS_SCRIPT}" ]]; then
-    _PATH_TO_THIS_SCRIPT="$(readlink -f "${_PATH_TO_THIS_SCRIPT}")"
+  if [[ "$(wget -q https://raw.githubusercontent.com; echo $?)" == 0 ]]; then
+    local _PATH_TO_THIS_SCRIPT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/$(basename "$0")"
+    # Check if file is a symbolic link and if yes get real link
+    if [[ -L "${_PATH_TO_THIS_SCRIPT}" ]]; then
+      _PATH_TO_THIS_SCRIPT="$(readlink -f "${_PATH_TO_THIS_SCRIPT}")"
+    fi
+    # Download script file
+    wget -qO- https://raw.githubusercontent.com/fereber/AppBuilder/master/AppBuilder -O "${_PATH_TO_THIS_SCRIPT}"
+    chmod +x "${_PATH_TO_THIS_SCRIPT}"
+  else
+    _error "updating failed, maybe is no internet connection..."
   fi
-  # Download script file
-  wget -qO- https://raw.githubusercontent.com/fereber/AppBuilder/master/AppBuilder -O "${_PATH_TO_THIS_SCRIPT}"
-  chmod +x "${_PATH_TO_THIS_SCRIPT}"
 }
 
 # System cleaning
