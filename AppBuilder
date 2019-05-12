@@ -41,6 +41,7 @@ declare -A _APP_INSTALL
 _APP_DESKTOP+=( nautilus )                        ; _APP_INSTALL[nautilus]="--pack"
 _APP_DESKTOP+=( gedit )                           ; _APP_INSTALL[gedit]="--pack"
 _APP_DESKTOP+=( libreoffice )                     ; _APP_INSTALL[libreoffice]="--pack"
+_APP_DESKTOP+=( libreoffice-style-sifr  )         ; _APP_INSTALL[libreoffice]="--pack" # for icons
 _APP_DESKTOP+=( simple-scan )                     ; _APP_INSTALL[simple-scan]="--pack"
 _APP_DESKTOP+=( gnome-software )                  ; _APP_INSTALL[gnome-software]="--pack"
 _APP_DESKTOP+=( gnome-software-plugin-snap )      ; _APP_INSTALL[gnome-software-plugin-snap]="--pack"
@@ -49,6 +50,7 @@ _APP_DESKTOP+=( gnome-software-plugin-flatpak )   ; _APP_INSTALL[gnome-software-
 _APP_DESKTOP+=( gnome-shell-extensions )          ; _APP_INSTALL[gnome-shell-extensions]="--pack"
 _APP_DESKTOP+=( chrome-gnome-shell )              ; _APP_INSTALL[chrome-gnome-shell]="--pack"
 _APP_DESKTOP+=( gnome-weather )                   ; _APP_INSTALL[gnome-weather]="--pack"
+_APP_DESKTOP+=( gnome-shell-extension-weather )   ; _APP_INSTALL[gnome-shell-extension-weather]="--pack"
 _APP_DESKTOP+=( gnome-calculator )                ; _APP_INSTALL[gnome-calculator]="--pack" # default: snap; add to an app list (with a different install method) and install if you want
 _APP_DESKTOP+=( gnome-calendar )                  ; _APP_INSTALL[gnome-calendar]="--pack"
 _APP_DESKTOP+=( gnome-clocks )                    ; _APP_INSTALL[gnome-clocks]="--pack"
@@ -82,7 +84,7 @@ _APP_MEDIA+=( libdvdnav4 )                        ; _APP_INSTALL[libdvdnav4]="--
 _APP_MEDIA+=( libdvdread4 )                       ; _APP_INSTALL[libdvdread4]="--pack"
 _APP_MEDIA+=( gstreamer1.0-plugins-bad )          ; _APP_INSTALL[gstreamer1.0-plugins-bad]="--pack"
 _APP_MEDIA+=( gstreamer1.0-plugins-ugly )         ; _APP_INSTALL[gstreamer1.0-plugins-ugly]="--pack"
-_APP_MEDIA+=( libdvd-pkg )                        ; _APP_INSTALL[libdvd-pkg]="--pack" # fix: sudo dpkg-reconfigure libdvd-pkg
+_APP_MEDIA+=( libdvd-pkg )                        ; _APP_INSTALL[libdvd-pkg]="--pack --set libdvd" # fix: sudo dpkg-reconfigure libdvd-pkg
 
 # Web & Communication & News
 _APP_NET+=( google-chrome )                       ; _APP_INSTALL[google-chrome]="--deb https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb"
@@ -135,6 +137,10 @@ _APP_UTILS+=( gnome-characters )                  ; _APP_INSTALL[gnome-character
 _APP_UTILS+=( gnome-logs )                        ; _APP_INSTALL[gnome-logs]="--pack" # default snap
 _APP_UTILS+=( gnome-system-monitor )              ; _APP_INSTALL[gnome-system-monitor]="--pack" # default snap
 _APP_UTILS+=( transmission )                      ; _APP_INSTALL[transmission]="--pack"
+_APP_UTILS+=( seahorse )                          ; _APP_INSTALL[seahorse]="--pack"
+_APP_UTILS+=( usb-creator-gtk )                   ; _APP_INSTALL[usb-creator-gtk]="--pack"
+_APP_UTILS+=( tlp )                               ; _APP_INSTALL[tlp]="--pack --set tlp"
+_APP_UTILS+=( gnome-power-manager )               ; _APP_INSTALL[gnome-power-manager]="--pack"
 
 # Fonts App List
 _APP_FONT+=( fonts-font-awesome )                 ; _APP_INSTALL[fonts-font-awesome]="--pack"
@@ -177,12 +183,28 @@ _APP_NON_FAVORITE=(
   gnome-builder
   gnome-documents
   bijiben
-  libdvd-pkg
+  transmission-gtk
+  gnome-power-manager
+  gnome-weather
+  gnome-map
+  usb-creator-gtk
+  gnome-clocks
+  gnome-todo
+  shotwell
+  seahorse
 )
 
 # Quick-start List: Favorite Apps
 #
-_APP_PREFER+=( google-chrome firefox thunderbird skype teamviewer ubuntu-restricted-extras )
+_APP_PREFER+=(
+  google-chrome
+  firefox
+  thunderbird
+  skype
+  teamviewer
+  ubuntu-restricted-extras
+  tlp
+)
 _APP_PREFER+=( ${_APP_DESKTOP[@]} ${_APP_FONT[@]} ) # Add some full app list
 for i in "${_APP_PREFER[@]}"; do    # Remove non-favorite apps
   _SKIP=""
@@ -1079,6 +1101,13 @@ _setting_app() {
       pip3 install beautysh
       apm install atom-beautify
     fi
+  fi
+  if _contains "libdvd" "${_APP_SETTING[@]}"; then
+    sudo dpkg-reconfigure libdvd-pkg
+  fi
+  if _contains "tlp" "${_APP_SETTING[@]}"; then
+    sudo apt install -y tpl-rdw
+    sudo tlp start
   fi
 }
 
