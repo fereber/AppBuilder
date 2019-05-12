@@ -3616,28 +3616,30 @@ cmd_apache() {
 # COMMAND: WordPress CLI
 #
 _HELP[wp]=$(cat << HELPWORDPRESS
-
-            COMING SOON!!!
-
-The \`wp\` command installs WordPress.
+The \`wp\` command installs WordPress CLI on system.
 
   Usage:
     $(basename "${0}") wp [options] [<arguments>...]
 
   Options:
-    -h, --help          Display this help
-        --debug         Run debug mode
+    -i, --install <path> Download and install WordPress
+    -u, --update  <path> Updating WordPress core
+    -h, --help           Display this help
+        --debug          Run debug mode
 HELPWORDPRESS
 )
 
 cmd_wp() {
   # Options parser
-  _OPTS_WP=$(getopt --options h --long help,debug --name "$(basename "${0}") ${_CMD}" -- "${@}")
-  if [ $? != 0 ] ; then _error "invalid option(s)" ; fi
+  _OPTS_WP=$(getopt --options hi:u:t --long help,debug,install:,update:,test --name "$(basename "${0}") ${_CMD}" -- "${@}")
+  if [[ $? != 0 ]] ; then exit 1 ; fi
   eval set -- "${_OPTS_WP}"
 
   while true ; do
     case "${1}" in
+      -i|--install) _WP_INSTALL=true ; _WP_ROOT="${2}" ; shift 2 ;;
+      -u|--update) _WP_UPDATE=true ; _WP_ROOT="${2}" ; shift 2 ;;
+      -t|--test) _WP_TEST=true ; shift ;;
       -h|--help) cmd_help ${_CMD}; shift ;;
       --debug) set -x ; _DEBUG=true ; shift ;;
       --) shift ; break ;;
@@ -3646,7 +3648,223 @@ cmd_wp() {
   done
 
   _check_desktop && printf "%b\n" "${_CHAS_MESSAGE}" && exit 1
-  cmd_help ${_CMD}
+
+  hash nginx 2>/dev/null || _error "no Nginx installed, first install it..."
+  hash php 2>/dev/null   || _error "no PHP installed, first install it..."
+  hash mysql 2>/dev/null || _error "no MySQL installed, first install it..."
+
+  local _WP_PLUGINS="wordpress-importer"
+  local _WP_THEMES="twentyseventeen twentynineteen"
+
+  # Download WP-CLI
+  if ! hash wp 2>/dev/null; then
+    sudo wget https://raw.githubusercontent.com/wp-cli/builds/gh-pages/phar/wp-cli.phar -O /usr/bin/wp
+    sudo chmod +x /usr/bin/wp
+    printf "WordPress CLI Info:\n"
+    sudo wp --info
+    sudo wp cli update
+  else
+    if [[ "${_OPTS_WP}" == " --" ]]; then
+      printf "  ✔  %s for WordPress is installed!\n" "$(wp --version)"
+    fi
+  fi
+
+  # Build WP
+  if "${_WP_INSTALL:-false}"; then
+
+    if [ -f "${_WP_ROOT}/wp-config.php" ]; then
+      printf "WordPress is already installed!\n"
+      read -p "Do you want me to update WordPress? [y/n] " REPLY
+      if [[ "${REPLY:-}" =~ ^[Yy]$ ]]; then
+        _WP_UPDATE=true
+      fi
+    else
+      printf "You want install WordPres in this location:\n  ⇢  %s\n\n" "${_WP_ROOT}"
+      printf "  - the location must be on /var/www/...\n"
+      printf "  - just continue if you have already created a mysql user\n"
+      read -p "Are you sure you want to continue?? [y/n] " REPLY
+
+      if [[ "${REPLY:-}" =~ ^[Nn]$ ]]; then
+        printf "Exiting...\n" && exit
+      fi
+
+      printf "\nNew Database for WordPress:\n"
+      read -p "Enter the database name (can be new as well): " _WP_DB_NAME
+      read -p "Enter the database user name (!! existing user !!): " _WP_DB_USER
+      read -p "Enter the password for ${_WP_DB_USER} user: " -s _WP_DB_PASSWORD
+      if "${_WP_TEST:-false}"; then
+        _WP_TITLE="Example for Wordpress"
+        _WP_USER_MAIL="example@example.loc"
+        _WP_USER="${_WP_USER_MAIL}"
+        _WP_USER_PASSWORD="${_WP_USER_MAIL}"
+        printf "\nWordPress Settings:\n"
+        read -p "Enter the address of the new site: http://" _WP_URL
+      else
+        printf "\nWordPress Settings:\n"
+        read -p "Enter the address of the new site: http://" _WP_URL
+        read -p "Enter the title of the new site: " _WP_TITLE
+        # read -p "Enter the username of the site admin: " _WP_USER
+        read -p "Enter the email address for the admin user: " _WP_USER_MAIL
+        _WP_USER=${_WP_USER_MAIL}
+        read -p "Enter the password of the site admin: " -s _WP_USER_PASSWORD
+      fi
+      printf "\n"
+
+      # Download WP (without the default themes and plugins)
+      if [ ! -d "${_WP_ROOT}/wp-includes" ]; then
+        sudo wp core download --allow-root --skip-content --path=${_WP_ROOT} || _error "downloading WordPress"
+      fi
+
+      # WP Config file
+      sudo grep "require_secure_transport = on" /etc/mysql/*.cnf > /dev/null || _SSL_DB_CONNECTION="# "
+      # _WP_DB_PREF="$(printf "WP_%s_" "$RANDOM"
+      _WP_DB_PREF="WP_"
+
+      sudo wp core config --allow-root --skip-check \
+        --path=${_WP_ROOT} \
+        --dbname=${_WP_DB_NAME} \
+        --dbuser=${_WP_DB_USER} \
+        --dbpass=${_WP_DB_PASSWORD} \
+        --dbhost=${_VAR[IP]} \
+        --dbprefix=${_WP_DB_PREF} \
+        --extra-php <<PHP
+/**
+ * This tells WordPress to use an SSL connection to our MySQL database
+ */
+define('MYSQL_CLIENT_FLAGS', MYSQLI_CLIENT_SSL);
+
+/**
+ * Change the default autosave interval from 60 seconds to 5 minutes and set number (or disable) of post revisions
+ */
+define( 'AUTOSAVE_INTERVAL', 300 );
+define( 'WP_POST_REVISIONS', false );
+
+/**
+ * Custom folder
+ */
+// define( 'UPLOADS', ''.'media' );
+
+/**
+ * If true, you can access the optimization tool at http://domain/wp-admin/maint/repair.php
+ */
+// define( 'WP_ALLOW_REPAIR', true );
+
+/**
+ * Overrides the wp_options table value for these but does not change it in the database
+ */
+// define( 'WP_SITEURL', '' );
+// define( 'WP_HOME', '' );
+
+/**
+ * Cron settings
+ */
+// define( 'ALTERNATE_WP_CRON', true );
+// define( 'DISABLE_WP_CRON', 'true');
+// define( 'WP_CRON_LOCK_TIMEOUT', 900);
+
+/**
+ * Disable the Plugin and Theme Editor
+ */
+define( 'DISALLOW_FILE_EDIT', true );
+
+/**
+ * Jetpack developer mode
+ */
+// define( 'JETPACK_DEV_DEBUG', false );
+
+/** EDD
+ * https://docs.easydigitaldownloads.com/article/185-shopping-cart-is-empty-at-checkout
+ */
+// define( 'EDD_USE_PHP_SESSIONS', false );
+
+/**
+ * WP Mail SMTP Plugin settings
+ */
+// define( 'WPMS_ON', true );
+// define( 'WPMS_SMTP_PASS', 'password_here' );
+
+/**
+ * Debug
+ */
+define( 'WP_DEBUG', false );
+
+PHP
+
+      if [[ $? != 0 ]]; then
+        _error "setting WordPress"
+      fi
+
+      # Create a database, if not exists
+      if [[ $(sudo mysql -u root -e "SHOW DATABASES;" | grep "${_WP_DB_NAME}$" &>/dev/null; echo $?) != 0 ]]; then
+        sudo wp db create --allow-root --path=${_WP_ROOT} || _error "creating database for WordPress"
+      fi
+
+      # Install WP
+      sudo wp core install --allow-root --skip-email --path=${_WP_ROOT} \
+        --url=${_WP_URL} \
+        --title="${_WP_TITLE}" \
+        --admin_user=${_WP_USER} \
+        --admin_password=${_WP_USER_PASSWORD} \
+        --admin_email=${_WP_USER_MAIL} || _error "installing WordPress"
+
+      # Install and activate plugin and themes instead of wordpress defaults
+      if [[ ! -z "${_WP_PLUGINS}" ]]; then
+        sudo wp plugin install --allow-root --activate --path=${_WP_ROOT} ${_WP_PLUGINS}
+      fi
+      if  [[ ! -z "${_WP_THEMES}" ]]; then
+        sudo wp theme install --allow-root --activate --path=${_WP_ROOT} ${_WP_THEMES}
+      fi
+
+      # Delete
+      # sudo wp plugin delete --allow-root --path=${_WP_ROOT} akismet hello
+      # sudo wp theme delete --allow-root --path=${_WP_ROOT} twentyfifteen twentysixteen
+
+      # WordPress Cron
+      if [ ! -f /etc/cron.daily/wordpress ]; then
+        sudo touch /etc/cron.daily/wordpress
+        sudo chmod +x /etc/cron.daily/wordpress
+      fi
+      grep "wp transient delete --allow-root --expired --path=${_WP_ROOT} > /dev/null" /etc/cron.daily/wordpress > /dev/null || sudo bash -c 'echo "wp transient delete --allow-root --expired --path=${_WP_ROOT} > /dev/null" >> /etc/cron.daily/wordpress'
+      grep "wp cache flush --allow-root --path=${_WP_ROOT} > /dev/null" /etc/cron.daily/wordpress > /dev/null || sudo bash -c 'echo "wp cache flush --allow-root --path=${_WP_ROOT} > /dev/null" >> /etc/cron.daily/wordpress'
+      # `run-parts /etc/cron.daily -v`
+      #
+      # Instead of the first five fields, one of eight special strings may appear:
+      #
+      # string         meaning
+      # ------         -------
+      # @reboot        Run once, at startup.
+      # @yearly        Run once a year, "0 0 1 1 *".
+      # @annually      (same as @yearly)
+      # @monthly       Run once a month, "0 0 1 * *".
+      # @weekly        Run once a week, "0 0 * * 0".
+      # @daily         Run once a day, "0 0 * * *".
+      # @midnight      (same as @daily)
+      # @hourly        Run once an hour, "0 * * * *".
+
+      #   .---------------- minute (0 - 59)
+      # | .------------- hour (0 - 23)
+      # | | .---------- day of month (1 - 31)
+      # | | | .------- month (1 - 12) OR jan,feb,mar,apr ...
+      # | | | | .---- day of week (0 - 6) (Sunday=0 or 7) OR sun,mon,tue,wed,thu,fri,sat
+      # | | | | |
+      # * * * * * command to be executed
+
+      # Remove index.html if exists
+      if [ -f ${_WP_ROOT}/index.html ]; then
+        sudo rm ${_WP_ROOT}/index.html
+      fi
+    fi # ...end downloading and installing of WordPress
+  fi
+
+  if "${_WP_UPDATE:-false}"; then
+    if [ -f "${_WP_ROOT}/wp-config.php" ]; then
+      sudo -u www-data wp core update --allow-root --path=${_WP_ROOT} || _error "updating WordPress core"
+      sudo -u www-data wp core update-db --allow-root --path=${_WP_ROOT} || _error "updating WordPress core database"
+      sudo -u www-data wp theme update --allow-root --all --path=${_WP_ROOT} || _error "updating WordPress theme"
+    else
+      _error "this location is not a root path a WordPress site"
+    fi
+  fi
 }
 
 # Display error information (\`dmesg\`)
