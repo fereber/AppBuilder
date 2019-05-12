@@ -875,7 +875,7 @@ _system_update() {
   sudo apt update -qq
   if hash flatpak 2>/dev/null; then
     printf "Flatpak... "
-    flatpak update -y
+    sudo flatpak update -y
   fi
 
   # Upgrading packages if necessary
@@ -910,7 +910,7 @@ _system_cleanup() {
   # Flatpak unused applications
   if hash flatpak 2>/dev/null; then
     printf "Unused Flatpak package(s)... "
-    flatpak uninstall -y --unused
+    sudo flatpak uninstall -y --unused
   fi
 
   # Clean packages cache
@@ -1203,7 +1203,7 @@ cmd_install() {
         if [[ $(_check_package_exists "snapd") != 0 ]]; then
           sudo apt install -y snapd
         fi
-        snap install ${_PACK} ${_SNAP_ARGS}
+        sudo snap install ${_PACK} ${_SNAP_ARGS}
         if [[ "${?}" -ne 0 ]]; then
           _SCRIPT_MESSAGES+=("There is something wrong with the installation of \`${_PACK}\`.")
         fi
@@ -1211,10 +1211,10 @@ cmd_install() {
       -f|--flat) _FLAT_ARGS=${2}
         if [[ $(_check_package_exists "flatpak") != 0 ]]; then
           sudo apt install -y flatpak gnome-software-plugin-flatpak
-          flatpak remote-add --if-not-exists flathub https://flathub.org/repo/flathub.flatpakrepo
+          sudo flatpak remote-add --if-not-exists flathub https://flathub.org/repo/flathub.flatpakrepo
           _SCRIPT_MESSAGES+=("After first installation of Flatpak is recommend\nrestart your system to complete setup.")
         fi
-        flatpak install --assumeyes flathub ${_FLAT_ARGS}
+        sudo flatpak install --assumeyes flathub ${_FLAT_ARGS}
         if [[ "${?}" -ne 0 ]]; then
           _SCRIPT_MESSAGES+=("There is something wrong with the installation of \`${_PACK}\`.")
         fi
@@ -1311,11 +1311,11 @@ cmd_remove() {
         sudo apt-get remove -y "${_PACK}"
       fi
       if [[ "$(_check_package_exists --print-status "${_PACK}")" == *"snap"* ]]; then
-        snap remove "${_PACK}"
+        sudo snap remove "${_PACK}"
       fi
       if [[ "$(_check_package_exists --print-status "${_PACK}")" == *"flat"* ]]; then
         _FLATPAK_PACK=$(flatpak list --app --columns=application | grep "${_PACK}")
-        flatpak uninstall -y "${_FLATPAK_PACK}"
+        sudo flatpak uninstall -y "${_FLATPAK_PACK}"
       fi
       if [[ "$(_check_package_exists --print-status "${_PACK}")" == *"complied"* ]]; then
         _SCRIPT_MESSAGES+=("☹ Sorry, '${_PACK}' package can remove manually only.")
