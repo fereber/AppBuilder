@@ -964,6 +964,16 @@ _system_settings() {
 
     # Displaying hidden startup applications
     sudo sed -i "s/NoDisplay=true/NoDisplay=false/g" /etc/xdg/autostart/*.desktop
+
+    # Set swappiness, if its current value is greater than 10% [system default is 60%]
+    # The swap file will then only be used when the RAM usage is around 90 percent.
+    if [[ "$(cat /proc/sys/vm/swappiness)" -gt 10 ]]; then
+      if [[ "$(grep "vm.swappiness" /etc/sysctl.conf &>/dev/null; echo $?)" != 0 ]]; then
+        echo "vm.swappiness = 10" | sudo tee -a /etc/sysctl.conf
+      else
+        sudo sed -i "s/vm.swappiness.*/vm.swappiness = 10/g" /etc/sysctl.conf
+      fi
+    fi
   fi
 }
 
