@@ -119,6 +119,7 @@ _APP_GAME+=( gnome-sudoku )                       ; _APP_INSTALL[gnome-sudoku]="
 _APP_GAME+=( gnome-mines )                        ; _APP_INSTALL[gnome-mines]="--pack"
 
 # Utilities
+_APP_UTILS+=( teamviewer )                        ; _APP_INSTALL[teamviewer]="--deb https://download.teamviewer.com/download/linux/teamviewer_amd64.deb"
 _APP_UTILS+=( dconf-editor )                      ; _APP_INSTALL[dconf-editor]="--pack"
 _APP_UTILS+=( gnome-tweak-tool )                  ; _APP_INSTALL[gnome-tweak-tool]="--pack"
 _APP_UTILS+=( gparted )                           ; _APP_INSTALL[gparted]="--pack"
@@ -181,7 +182,7 @@ _APP_NON_FAVORITE=(
 
 # Quick-start List: Favorite Apps
 #
-_APP_PREFER+=( google-chrome firefox thunderbird skype ubuntu-restricted-extras )
+_APP_PREFER+=( google-chrome firefox thunderbird skype teamviewer ubuntu-restricted-extras )
 _APP_PREFER+=( ${_APP_DESKTOP[@]} ${_APP_FONT[@]} ) # Add some full app list
 for i in "${_APP_PREFER[@]}"; do    # Remove non-favorite apps
   _SKIP=""
