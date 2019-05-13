@@ -395,10 +395,10 @@ _check_git_config() {
 #
 # Option:
 #   --print-status  Print package status information, if the package exists ... for example:
-#       ✔ (pack+snap) If the package is installed from two sources as well.
-#       ✔ (snap)      If the package is installed.
-#       ✔ (appimg)    If the package is present on your system as an AppImage [~/.local/bin].
-#       ✖ ()          If not.
+#       ✔ (pack+snap)       If the package is installed from two sources as well.
+#       ✔ (snap)            If the package is installed.
+#       ✔ (~/.local/bin)    If the package is present on your system, for example as an AppImage [~/.local/bin].
+#       ✖ ()                If not.
 #
 # Arg:
 #   $1 (required): Name of package
@@ -439,7 +439,7 @@ _check_package_exists() {
         _SOURCE+=( pack )
       fi
     fi
-    if [ "$(type -P "${_PACKAGE}")" == "$HOME/.local/bin" ]; then
+    if [[ "$(type -P "${_PACKAGE}")" == *"$HOME/.local/bin"* ]]; then
       _SOURCE+=( \~/.local/bin )
     fi
     if [[ "$(type -P "${_PACKAGE}")" == *"$HOME/.nvm"* ]]; then
