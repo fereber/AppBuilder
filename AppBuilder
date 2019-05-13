@@ -359,6 +359,7 @@ _check_timezone() {
         _error "invalid timezone --'${_SET_TIMEZONE}'"
       else
         sudo timedatectl set-timezone "${_SET_TIMEZONE}" && whiptail --title "Success" --msgbox "The timezone changed to ${_SET_TIMEZONE}." 7 80
+        _VAR[Timezone]="${_SET_TIMEZONE}"
       fi
     fi
   else
