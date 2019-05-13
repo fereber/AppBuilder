@@ -1181,12 +1181,11 @@ GRANT ALL PRIVILEGES ON digikam.* TO 'digikam'@'localhost';
 FLUSH PRIVILEGES;
 EOF
     fi
+    # Print setting instructions
+    local _UNIX_SOCKET_PATH="$(sudo mysql -u root -e "SHOW VARIABLES LIKE 'socket';" | grep socket | awk '{ print $2 }')"
+    printf "Improving the speed of Digikam using MySQL!\nGo to  ⇢  digiKam > Settings > Configure digikam > Database tab\n...and set the following\n"
+    printf "  - Hostname:          localhost\n  - Conection options: UNIX_SOCKET=%s\n  - User:              digikam\n  - Password:          .digiKam2user\n  - Database:          klick 'Default Setting' button\n" "${_UNIX_SOCKET_PATH}"
   fi
-
-  # Print setting instructions
-  local _UNIX_SOCKET_PATH="$(sudo mysql -u root -e "SHOW VARIABLES LIKE 'socket';" | grep socket | awk '{ print $2 }')"
-  printf "Improving the speed of Digikam using MySQL!\nGo to  ⇢  digiKam > Settings > Configure digikam > Database tab\n...and set the following\n"
-  printf "  - Hostname:          localhost\n  - Conection options: UNIX_SOCKET=%s\n  - User:              digikam\n  - Password:          .digiKam2user\n  - Database:          klick 'Default Setting' button\n" "${_UNIX_SOCKET_PATH}"
 }
 
 # Installing software applications with different package formats and methods
