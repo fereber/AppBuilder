@@ -67,7 +67,7 @@ _APP_DESKTOP+=( ubuntu-web-launchers )            ; _APP_INSTALL[ubuntu-web-laun
 # Media: Photo & Audio & Video
 _APP_MEDIA+=( gnome-photos )                      ; _APP_INSTALL[gnome-photos]="--pack"
 _APP_MEDIA+=( gimp )                              ; _APP_INSTALL[gimp]="--flat org.gimp.GIMP"
-_APP_MEDIA+=( digikam )                           ; _APP_INSTALL[digikam]="--appimg https://download.kde.org/stable/digikam/6.0.0/digikam-6.0.0-x86-64.appimage"
+_APP_MEDIA+=( digikam )                           ; _APP_INSTALL[digikam]="--appimg https://download.kde.org/stable/digikam/6.1.0/digikam-6.1.0-x86-64.appimage --set digikam"
 _APP_MEDIA+=( shotwell )                          ; _APP_INSTALL[shotwell]="--pack"
 _APP_MEDIA+=( exiftool )                          ; _APP_INSTALL[exiftool]="--pack" # libimage-exiftool-perl
 _APP_MEDIA+=( inkscape )                          ; _APP_INSTALL[inkscape]="--pack"
@@ -1133,6 +1133,35 @@ _setting_app() {
     sudo apt install -y tpl-rdw
     sudo tlp start
   fi
+  if _contains "digikam" "${_APP_SETTING[@]}"; then
+    _create_desktop_entry digikam "Professional Photo Management with the Power of Open Source - A KDE Family Project" digikam digikam digikam_oxygen
+    # digiKam icon
+    mkdir -p $HOME/.local/share/icons/hicolor/scalable/apps/
+    if [ ! -f "$HOME/.local/share/icons/hicolor/scalable/apps/digikam_oxygen.svg" ]; then
+      wget https://www.digikam.org/img/digikam_oxygen.svg -O $HOME/.local/share/icons/hicolor/scalable/apps/digikam_oxygen.svg
+    fi
+
+    # Install mysql if not exists
+    hash mysql 2>/dev/null || cmd_mysql
+
+    # Add new MySQL user (digikam) with root priv. and create digikam database
+    if [[ $(sudo mysql -u root -e "SHOW DATABASES;" | grep "digikam$" &>/dev/null; echo $?) != 0 ]]; then
+      sudo mysql -u root <<EOF
+CREATE USER IF NOT EXISTS 'digikam'@'localhost' IDENTIFIED BY '.digiKam2user';
+GRANT ALL PRIVILEGES ON *.* TO 'digikam'@'localhost' WITH GRANT OPTION;
+CREATE USER IF NOT EXISTS 'digikam'@'%' IDENTIFIED BY '.digiKam2user';
+GRANT ALL PRIVILEGES ON *.* TO 'digikam'@'%' WITH GRANT OPTION;
+CREATE DATABASE digikam;
+GRANT ALL PRIVILEGES ON digikam.* TO 'digikam'@'localhost';
+FLUSH PRIVILEGES;
+EOF
+    fi
+  fi
+
+  # Print setting instructions
+  local _UNIX_SOCKET_PATH="$(sudo mysql -u root -e "SHOW VARIABLES LIKE 'socket';" | grep socket | awk '{ print $2 }')"
+  printf "Improving the speed of Digikam using MySQL!\nGo to  ⇢  digiKam > Settings > Configure digikam > Database tab\n...and set the following\n"
+  printf "  - Hostname:          localhost\n  - Conection options: UNIX_SOCKET=%s\n  - User:              digikam\n  - Password:          .digiKam2user\n  - Database:          klick 'Default Setting' button\n" "${_UNIX_SOCKET_PATH}"
 }
 
 # Installing software applications with different package formats and methods
