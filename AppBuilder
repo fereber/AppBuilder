@@ -3920,6 +3920,7 @@ _system_info() {
   _VAR['Model Serial Number']="$(sudo dmidecode -s system-serial-number 2>/dev/null)"
   _VAR['CPU']="$(sudo dmidecode -s processor-version 2>/dev/null | uniq)"
   _VAR['Memory Total (GB)']="$(free --giga | grep Mem | awk '{print $2}')"
+  _VAR[Swappiness]="$(cat /proc/sys/vm/swappiness)"
 
   printf "\nSystem Info - %s\n" "AppBuilder v${_VERSION}"
   local _BORDER="--------------------------------------------------"
