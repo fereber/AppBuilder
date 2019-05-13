@@ -2893,48 +2893,6 @@ MYSQLCONFIG
     # Generate SSL/TLS Certificates and Keys
     sudo mysql_ssl_rsa_setup --uid=mysql
 
-    # Check the current status of SSL/TLS on our MySQL server
-    #
-    # `mysql -u <user> -p -h <IP adress>`, and ...
-    #
-    # mysql> \s
-    # --------------
-    # mysql  Ver 14.14 Distrib 5.7.22, for Linux (x86_64) using  EditLine wrapper
-    #
-    # Connection id:		5
-    # Current database:
-    # Current user:		user@fqdn
-    # SSL:			Cipher in use is DHE-RSA-AES256-SHA
-    # Current pager:		stdout
-    # Using outfile:		''
-    # Using delimiter:	;
-    # Server version:		5.7.22-0ubuntu18.04.1 (Ubuntu)
-    # Protocol version:	10
-    # Connection:		<IP adress> via TCP/IP
-    # Server characterset:	utf8
-    # Db     characterset:	utf8
-    # Client characterset:	utf8
-    # Conn.  characterset:	utf8
-    # TCP port:		3306
-    #
-    # mysql> SHOW VARIABLES LIKE '%ssl%';
-    # +---------------+-----------------+
-    # | Variable_name | Value           |
-    # +---------------+-----------------+
-    # | have_openssl  | YES             |
-    # | have_ssl      | YES             |
-    # | ssl_ca        | ca.pem          |
-    # | ssl_capath    |                 |
-    # | ssl_cert      | server-cert.pem |
-    # | ssl_cipher    |                 |
-    # | ssl_crl       |                 |
-    # | ssl_crlpath   |                 |
-    # | ssl_key       | server-key.pem  |
-    # +---------------+-----------------+
-    # mysql> exit
-    #
-    # Location of files: `sudo find /var/lib/mysql -name '*.pem' -ls`
-
     # Install password validation plugin
     if [[ $(sudo mysql -u root -e "SELECT PLUGIN_NAME, PLUGIN_STATUS FROM INFORMATION_SCHEMA.PLUGINS WHERE PLUGIN_NAME LIKE 'validate%';" | grep ACTIVE &>/dev/null; echo $?) != 0 ]]; then
       sudo mysql -u root <<EOF
