@@ -3580,28 +3580,31 @@ cmd_nodejs() {
 # COMMAND: Apache
 #
 _HELP[apache]=$(cat << HELPAPACHE
-
-            COMING SOON!!!
-
 The \`apache\` command buids an Apache server.
 
   Usage:
     $(basename "${0}") apache [options] [<arguments>...]
 
   Options:
-    -h, --help          Display this help
-        --debug         Run debug mode
+    -c, --config             Config Apache2
+    -v, --vhost   <domain>   Add or config a virtual host
+    -d, --disable <domain>   Disable the <domain> virtual host:
+    -h, --help               Display this help
+        --debug              Run debug mode
 HELPAPACHE
 )
 
 cmd_apache() {
   # Options parser
-  _OPTS_APACHE=$(getopt --options h --long help,debug --name "$(basename "${0}") ${_CMD}" -- "${@}")
+  _OPTS_APACHE=$(getopt --options hcv:d: --long help,debug,config,vhost:,disable: --name "$(basename "${0}") ${_CMD}" -- "${@}")
   if [ $? != 0 ] ; then _error "invalid option(s)" ; fi
   eval set -- "${_OPTS_APACHE}"
 
   while true ; do
     case "${1}" in
+      -c|--config) _CONFIG_APACHE=true ; shift ;;
+      -v|--vhost) _VHOST=true ; _DOMAIN="${2}" ; shift 2 ;;
+      -d|--disable) _VHOST_DISABLE=true ; _DOMAIN="${2}" ; shift 2 ;;
       -h|--help) cmd_help ${_CMD}; shift ;;
       --debug) set -x ; _DEBUG=true ; shift ;;
       --) shift ; break ;;
@@ -3610,7 +3613,50 @@ cmd_apache() {
   done
 
   _check_desktop && printf "%b\n" "${_CHAS_MESSAGE}" && exit 1
-  cmd_help ${_CMD}
+
+  local _ROOT_PATH="/var/www/${_DOMAIN}"
+
+  if ! hash apache2 2>/dev/null; then
+    sudo apt install -y apache2
+    # Check if Nginx will automatically initiate after a reboot:
+    if [[ $(systemctl is-enabled apache2.service) != "enabled" ]]; then
+      sudo systemctl enable apache2.service || _error "configure and enable Apache -- 'sysremctl'"
+    fi
+    _CONFIG_APACHE=true
+  fi
+
+  if "${_CONFIG_APACHE:-false}"; then
+    sudo a2dissite *default
+    sudo ufw allow 'Apache Full' comment 'Apache server' &>/dev/null  && printf "  ⇢  Ufw rule: allow Apache Full\n"
+  fi
+
+  if "${_VHOST:-false}"; then
+    sudo mkdir -p ${_ROOT_PATH}/{public,log,cache,letsencrypt}
+
+    sudo bash -c "cat > /etc/apache2/sites-available/${_SUB}${_DOMAIN}.conf" <<APACHEVHOST
+<VirtualHost *:80>
+
+    ServerAdmin webmaster@${_DOMAIN}
+    ServerName  ${_DOMAIN}
+    ServerAlias www.${_DOMAIN}
+
+    DirectoryIndex index.html index.php
+    DocumentRoot ${_ROOT_PATH}/public
+
+    LogLevel warn
+    ErrorLog  ${_ROOT_PATH}/log/error.log
+    CustomLog ${_ROOT_PATH}/log/access.log combined
+</VirtualHost>
+APACHEVHOST
+
+    sudo a2ensite ${_SUB}${_DOMAIN}.conf || _error "enabling site for Apache"
+    sudo systemctl reload apache2 || _error "reloading Apache server"
+  fi
+
+  if "${_VHOST_DISABLE:-false}"; then
+    sudo a2dissite ${_DOMAIN}.conf
+    sudo systemctl reload apache2 || _error "reloading Apache server"
+  fi
 }
 
 # COMMAND: WordPress CLI
