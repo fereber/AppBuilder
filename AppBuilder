@@ -3065,7 +3065,7 @@ cmd_php() {
 
     sudo bash -c "cat > /etc/php/${_VER_PHP}/fpm/conf.d/myphp.ini" <<EOF
 cgi.fix_pathinfo = 0
-memory_limit = 128M
+memory_limit = 256M
 post_max_size = 64M
 upload_max_filesize = 64M
 max_execution_time = 300
