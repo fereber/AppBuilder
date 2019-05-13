@@ -557,7 +557,7 @@ _main() {
   else # If the command is not defined, run this...
 
     # Options parser
-    _OPTS=$(getopt --options h,u,c,i,e,s,v --long help,debug,update,clean,info,error,setting,version --name "$(basename "${0}")" -- "${@}")
+    _OPTS=$(getopt --options h,u,c,i,e,d,s,v --long help,debug,update,clean,info,error,desktop,setting,version --name "$(basename "${0}")" -- "${@}")
     if [ $? != 0 ] ; then _error "invalid option(s) or missing command" ; fi
     eval set -- "${_OPTS}"
 
@@ -570,6 +570,7 @@ _main() {
         -c|--clean)   _system_cleanup   ; shift ;;
         -i|--info)    _system_info      ; shift ;;
         -e|--error)   _system_error     ; shift ;;
+        -d|--desktop) _create_desktop   ; shift ;;
         -s|--setting) _system_settings  ; shift ;;
         -v|--version)
           printf "%s\n" "${_VERSION}"
@@ -634,6 +635,7 @@ The $(basename "$0") is a post install script to help building and setting your 
     -s, --setting       Configure system
     -i, --info          Display system information
     -e, --error         Display error information (\`dmesg\`)
+    -d, --desktop       Creating a desktop file
     -v, --version       Print this script version number
         --update        Update this script (from github)
     -h, --help          Display this help
@@ -1004,7 +1006,7 @@ _java_settings() {
   fi
 }
 
-# Creating a desktop file - Helper function for cmd_install()...
+# Creating a desktop file
 #
 # Args:
 #   $1 (required): Package name
@@ -1012,19 +1014,40 @@ _java_settings() {
 # Return:
 #   Desktop file, that will be located in $HOME/.local/share/applications/ folder.
 #
-_create_desktop_entry() {
-  local _NAME=$(whiptail --inputbox "\nWhat is your package name?" 8 75 "${1}" --title "Create a desktop file: ~/.local/share/applications/${1}" 3>&1 1>&2 2>&3)
-  local _DESCRIPTION=$(whiptail --inputbox "\nAdd a description for the package" 8 75 "${1} - App" --title "Create a desktop file: /.local/share/applications/${1}" 3>&1 1>&2 2>&3)
-  cat > /tmp/${1}.desktop <<DESKTOPFILE
+_create_desktop() {
+
+  [[ -z "${1}" ]] && local _NAME=$(whiptail --inputbox "\nWhat is your package name?" 8 75 "" --title "Create a desktop file" 3>&1 1>&2 2>&3)
+  [[ -z "${_NAME:-$1}" ]] && _error "required an argument -'Name Application'"
+
+  if "${_FIRST_CHECK:-true}"; then
+    if [ -f "$HOME/.local/share/applications/${_NAME:-$1}.desktop" ]; then
+      whiptail --title "Desktop File is already exists for ${_NAME:-$1}" --textbox $HOME/.local/share/applications/"${_NAME:-$1}".desktop 16 60
+      whiptail --title "Info" --yes-button "Ok" --no-button "Modify" --yesno "Is it OK, or do you want modify the desktop file!" 7 45 && exit
+    fi
+  fi
+
+  [[ -z "${2}" ]] && local _DESCRIPTION=$(whiptail --inputbox "\nAdd a 'Description' for the package" 8 75 "" --title "Create a desktop file" 3>&1 1>&2 2>&3)
+  [[ -z "${3}" ]] && local _EXEC=$(whiptail --inputbox "\nAdd an 'Exec' for the package" 8 75 "" --title "Create a desktop file" 3>&1 1>&2 2>&3)
+  [[ -z "${4}" ]] && local _TRY_EXEC=$(whiptail --inputbox "\nAdd a 'TryExec' for the package" 8 75 "" --title "Create a desktop file" 3>&1 1>&2 2>&3)
+  [[ -z "${5}" ]] && local _ICON_NAME=$(whiptail --inputbox "\nAdd an 'Icon' path for the package" 8 75 "" --title "Create a desktop file" 3>&1 1>&2 2>&3)
+
+  cat > /tmp/"${_NAME:-$1}".desktop <<DESKTOPFILE
 [Desktop Entry]
-Name=${_NAME}
-Comment=${_DESCRIPTION}
-Exec=${1}
-TryExec=${1}
+Name=${_NAME:-$1}
+Comment=${_DESCRIPTION:-$2}
+Exec=${_EXEC:-$3}
+TryExec=${_TRY_EXEC:-$4}
+Icon=${_ICON_NAME:-$5}
 Type=Application
 DESKTOPFILE
-  desktop-file-install --dir=$HOME/.local/share/applications /tmp/${1}.desktop
-  whiptail --title "Desktop Entry: ${1}" --textbox $HOME/.local/share/applications/${1}.desktop 16 60
+  desktop-file-install --dir=$HOME/.local/share/applications /tmp/"${_NAME:-$1}".desktop
+
+  whiptail --title "New Desktop File for ${_NAME:-$1}" --textbox $HOME/.local/share/applications/"${_NAME:-$1}".desktop 16 60
+  whiptail --title "Info" --yes-button "Ok" --no-button "Modify" --yesno "Is it OK, or do you want modify the desktop file!" 7 45 && exit
+  if [[ $? != 0 ]]; then
+    local _FIRST_CHECK=false
+    _create_desktop
+  fi
 }
 
 # VirtualBox - Helper function for cmd_install()...
@@ -1134,7 +1157,9 @@ _setting_app() {
     sudo tlp start
   fi
   if _contains "digikam" "${_APP_SETTING[@]}"; then
-    _create_desktop_entry digikam "Professional Photo Management with the Power of Open Source - A KDE Family Project" digikam digikam digikam_oxygen
+    if [ ! -f "$HOME/.local/share/applications/digikam.desktop" ]; then
+      _create_desktop digikam "Professional Photo Management with the Power of Open Source - A KDE Family Project" digikam digikam digikam_oxygen
+    fi
     # digiKam icon
     mkdir -p $HOME/.local/share/icons/hicolor/scalable/apps/
     if [ ! -f "$HOME/.local/share/icons/hicolor/scalable/apps/digikam_oxygen.svg" ]; then
@@ -1282,10 +1307,6 @@ cmd_install() {
             _SCRIPT_MESSAGES+=("There is something wrong with the downloading of \`${_DEB_ARGS}\`.")
           fi
           chmod a+x ${HOME}/.local/bin/${_PACK}
-        fi
-        # AppImage Launcher
-        if [ ! -f "$HOME/.local/share/applications/${_PACK}.desktop" ]; then
-          _create_desktop_entry "${_PACK}"
         fi
         shift 2 ;;
       --ppa) _PPA_ARGS=${2}
