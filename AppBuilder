@@ -79,6 +79,7 @@ _APP_MEDIA+=( rhythmbox )                         ; _APP_INSTALL[rhythmbox]="--p
 _APP_MEDIA+=( picard )                            ; _APP_INSTALL[picard]="--flat org.musicbrainz.Picard"
 _APP_MEDIA+=( audacity )                          ; _APP_INSTALL[audacity]="--flat org.audacityteam.Audacity"
 _APP_MEDIA+=( spotify )                           ; _APP_INSTALL[spotify]="--flat com.spotify.Client"
+_APP_MEDIA+=( totem )                             ; _APP_INSTALL[totem]="--pack" # GNOME Movie Player
 _APP_MEDIA+=( ffmpeg )                            ; _APP_INSTALL[ffmpeg]="--pack"
 _APP_MEDIA+=( vlc )                               ; _APP_INSTALL[vlc]="--flat org.videolan.VLC"
 _APP_MEDIA+=( ubuntu-restricted-extras )          ; _APP_INSTALL[ubuntu-restricted-extras]="--pack"
