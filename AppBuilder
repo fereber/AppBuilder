@@ -4094,6 +4094,7 @@ _system_info() {
     printf "$_CONTENT" "$_NAME" "${_VAR[$_NAME]}"
   done | sort -n
   printf "%50.50s\n\n" "$_BORDER"
+  printf "Hard disk:\n\n%s\n" "$(sudo parted -l)"
 }
 
 # Global Variables
