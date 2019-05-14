@@ -44,6 +44,7 @@ _APP_DESKTOP+=( libreoffice )                     ; _APP_INSTALL[libreoffice]="-
 _APP_DESKTOP+=( libreoffice-style-sifr )          ; _APP_INSTALL[libreoffice-style-sifr]="--pack" # for icons
 _APP_DESKTOP+=( simple-scan )                     ; _APP_INSTALL[simple-scan]="--pack"
 _APP_DESKTOP+=( evince )                          ; _APP_INSTALL[evince]="--pack"
+_APP_DESKTOP+=( cheese )                          ; _APP_INSTALL[cheese]="--pack" # GNOME webcam
 _APP_DESKTOP+=( gnome-software )                  ; _APP_INSTALL[gnome-software]="--pack"
 _APP_DESKTOP+=( gnome-software-plugin-snap )      ; _APP_INSTALL[gnome-software-plugin-snap]="--pack"
 _APP_DESKTOP+=( flatpak )                         ; _APP_INSTALL[flatpak]="--pack"
