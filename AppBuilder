@@ -65,6 +65,7 @@ _APP_DESKTOP+=( openjdk-8-jdk )                   ; _APP_INSTALL[openjdk-8-jdk]=
 _APP_DESKTOP+=( ubuntu-web-launchers )            ; _APP_INSTALL[ubuntu-web-launchers]="--pack"
 
 # Media: Photo & Audio & Video
+_APP_MEDIA+=( eog )                               ; _APP_INSTALL[eog]="--pack" # Eye of GNOME graphics viewer
 _APP_MEDIA+=( gnome-photos )                      ; _APP_INSTALL[gnome-photos]="--pack"
 _APP_MEDIA+=( gimp )                              ; _APP_INSTALL[gimp]="--flat org.gimp.GIMP"
 _APP_MEDIA+=( digikam )                           ; _APP_INSTALL[digikam]="--appimg https://download.kde.org/stable/digikam/6.1.0/digikam-6.1.0-x86-64.appimage --set digikam"
@@ -200,6 +201,7 @@ _APP_PREFER+=(
   google-chrome
   firefox
   thunderbird
+  eog
   skype
   teamviewer
   ubuntu-restricted-extras
