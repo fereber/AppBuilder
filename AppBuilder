@@ -895,7 +895,7 @@ _system_update() {
 # Script updating from GitHub
 #
 _script_update() {
-  if [[ "$(wget -q https://raw.githubusercontent.com; echo $?)" == 0 ]]; then
+  if [[ "$(wget -qO- https://raw.githubusercontent.com &>/dev/null; echo $?)" == 0 ]]; then
     local _PATH_TO_THIS_SCRIPT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/$(basename "$0")"
     # Check if file is a symbolic link and if yes get real link
     if [[ -L "${_PATH_TO_THIS_SCRIPT}" ]]; then
