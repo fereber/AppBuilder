@@ -186,7 +186,7 @@ _APP_NON_FAVORITE=(
   transmission-gtk
   gnome-power-manager
   gnome-weather
-  gnome-map
+  gnome-maps
   usb-creator-gtk
   gnome-clocks
   gnome-todo
