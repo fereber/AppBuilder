@@ -43,7 +43,7 @@ _APP_DESKTOP+=( gedit )                           ; _APP_INSTALL[gedit]="--pack"
 _APP_DESKTOP+=( libreoffice )                     ; _APP_INSTALL[libreoffice]="--pack"
 _APP_DESKTOP+=( libreoffice-style-sifr )          ; _APP_INSTALL[libreoffice-style-sifr]="--pack" # for icons
 _APP_DESKTOP+=( simple-scan )                     ; _APP_INSTALL[simple-scan]="--pack"
-_APP_DESKTOP+=( evince )                          ; _APP_INSTALL[evince]="--pack"
+_APP_DESKTOP+=( evince )                          ; _APP_INSTALL[evince]="--pack" # GNOME document viewer
 _APP_DESKTOP+=( cheese )                          ; _APP_INSTALL[cheese]="--pack" # GNOME webcam
 _APP_DESKTOP+=( gnome-software )                  ; _APP_INSTALL[gnome-software]="--pack"
 _APP_DESKTOP+=( gnome-software-plugin-snap )      ; _APP_INSTALL[gnome-software-plugin-snap]="--pack"
@@ -136,7 +136,8 @@ _APP_UTILS+=( bijiben )                           ; _APP_INSTALL[bijiben]="--pac
 _APP_UTILS+=( gnome-todo )                        ; _APP_INSTALL[gnome-todo]="--pack"
 _APP_UTILS+=( gnome-documents )                   ; _APP_INSTALL[gnome-documents]="--pack"
 _APP_UTILS+=( gnome-disk-utility )                ; _APP_INSTALL[gnome-disk-utility]="--pack"
-_APP_UTILS+=( gnome-usage )                       ; _APP_INSTALL[gnome-usage]="--pack"
+_APP_UTILS+=( gnome-usage )                       ; _APP_INSTALL[gnome-usage]="--pack" # = yelp
+_APP_UTILS+=( yelp )                              ; _APP_INSTALL[yelp]="--pack"
 _APP_UTILS+=( gnome-characters )                  ; _APP_INSTALL[gnome-characters]="--pack" # default snap
 _APP_UTILS+=( gnome-logs )                        ; _APP_INSTALL[gnome-logs]="--pack" # default snap
 _APP_UTILS+=( gnome-system-monitor )              ; _APP_INSTALL[gnome-system-monitor]="--pack" # default snap
