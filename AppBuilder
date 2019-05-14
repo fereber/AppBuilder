@@ -3905,10 +3905,9 @@ PHP
   fi
 }
 
-
 # COMMAND: Multi Boot USB
 #
-_HELP[bootusb]=$(cat << HELPWORDPRESS
+_HELP[bootusb]=$(cat << HELPBOOTUSB
 The \`bootusb\` command creates a Multi Boot USB drive.
 
   Usage:
@@ -3921,7 +3920,7 @@ The \`bootusb\` command creates a Multi Boot USB drive.
                            - Elementary OS 5.0 Juno
     -h, --help           Display this help
         --debug          Run debug mode
-HELPWORDPRESS
+HELPBOOTUSB
 )
 
 cmd_bootusb () {
