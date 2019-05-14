@@ -1281,9 +1281,9 @@ cmd_install() {
       -f|--flat) _FLAT_ARGS=${2}
         if [[ $(_check_package_exists "flatpak") != 0 ]]; then
           sudo apt install -y flatpak gnome-software-plugin-flatpak
-          sudo flatpak remote-add --if-not-exists flathub https://flathub.org/repo/flathub.flatpakrepo
           _SCRIPT_MESSAGES+=("After first installation of Flatpak is recommend\nrestart your system to complete setup.")
         fi
+        sudo flatpak remote-add --if-not-exists flathub https://flathub.org/repo/flathub.flatpakrepo
         sudo flatpak install --assumeyes flathub ${_FLAT_ARGS}
         if [[ "${?}" -ne 0 ]]; then
           _SCRIPT_MESSAGES+=("There is something wrong with the installation of \`${_PACK}\`.")
