@@ -3691,25 +3691,31 @@ The \`wp\` command installs WordPress CLI on system.
     $(basename "${0}") wp [options] [<arguments>...]
 
   Options:
-    -i, --install <path> Download and install WordPress
-                         [default server root: /var/www/<domainname>/public]
-    -u, --update  <path> Updating WordPress core
-    -h, --help           Display this help
-        --debug          Run debug mode
+    -l, --location <path>   Set WordPress location (required option)
+                            [default server root: /var/www/<domainname>/public]
+    -i, --install           Download and install WordPress
+    -u, --update            Updating WordPress core
+    -p, --plugin <name>     Install and activate a plugin from WP plugin directory
+    -t, --theme <name>      Install and activate a theme from WP theme directory
+    -h, --help              Display this help
+        --debug             Run debug mode
 HELPWORDPRESS
 )
 
 cmd_wp() {
   # Options parser
-  _OPTS_WP=$(getopt --options hi:u:t --long help,debug,install:,update:,test --name "$(basename "${0}") ${_CMD}" -- "${@}")
-  if [[ $? != 0 ]] ; then exit 1 ; fi
+  _OPTS_WP=$(getopt --options hl:iup:t: --long help,debug,location:,install,update,plugin:,theme:,test --name "$(basename "${0}") ${_CMD}" -- "${@}")
+  if [ $? != 0 ] ; then _error "invalid option(s)" ; fi
   eval set -- "${_OPTS_WP}"
 
   while true ; do
     case "${1}" in
-      -i|--install) _WP_INSTALL=true ; _WP_ROOT="${2}" ; shift 2 ;;
-      -u|--update) _WP_UPDATE=true ; _WP_ROOT="${2}" ; shift 2 ;;
-      -t|--test) _WP_TEST=true ; shift ;;
+      -l|--location) _WP_ROOT="${2}" ; shift 2 ;;
+      -i|--install) _WP_INSTALL=true ; shift ;;
+      -u|--update) _WP_UPDATE=true ; shift ;;
+      -p|--plugin) _WP_PLUGIN="${2}" ; shift 2 ;;
+      -t|--theme) _WP_THEME="${2}" ; shift 2 ;;
+      --test) _WP_TEST=true ; shift ;;
       -h|--help) cmd_help ${_CMD}; shift ;;
       --debug) set -x ; _DEBUG=true ; shift ;;
       --) shift ; break ;;
@@ -3723,9 +3729,6 @@ cmd_wp() {
   hash php 2>/dev/null   || _error "no PHP installed, first install it..."
   hash mysql 2>/dev/null || _error "no MySQL installed, first install it..."
 
-  local _WP_PLUGINS="wordpress-importer"
-  local _WP_THEMES="twentyseventeen twentynineteen"
-
   # Download WP-CLI
   if ! hash wp 2>/dev/null; then
     sudo wget https://raw.githubusercontent.com/wp-cli/builds/gh-pages/phar/wp-cli.phar -O /usr/bin/wp
@@ -3736,11 +3739,17 @@ cmd_wp() {
   else
     if [[ "${_OPTS_WP}" == " --" ]]; then
       printf "  ✔  %s for WordPress is installed!\n" "$(wp --version)"
+      exit 0
     fi
   fi
 
+  [[ -z "${_WP_ROOT}" ]] && _error "required argument - 'location'"
+
   # Build WP
   if "${_WP_INSTALL:-false}"; then
+
+    local _WP_PLUGINS="wordpress-importer"
+    local _WP_THEMES="twentyseventeen twentynineteen"
 
     if [ -f "${_WP_ROOT}/wp-config.php" ]; then
       printf "WordPress is already installed!\n"
@@ -3903,14 +3912,20 @@ PHP
     fi # ...end downloading and installing of WordPress
   fi
 
-  if "${_WP_UPDATE:-false}"; then
-    if [ -f "${_WP_ROOT}/wp-config.php" ]; then
+  if [ -f "${_WP_ROOT}/wp-config.php" ]; then
+    if "${_WP_UPDATE:-false}"; then
       sudo -u www-data wp core update --allow-root --path=${_WP_ROOT} || _error "updating WordPress core"
       sudo -u www-data wp core update-db --allow-root --path=${_WP_ROOT} || _error "updating WordPress core database"
       sudo -u www-data wp theme update --allow-root --all --path=${_WP_ROOT} || _error "updating WordPress theme"
-    else
-      _error "this location is not a root path a WordPress site"
     fi
+    if [[ -n "${_WP_PLUGIN:-}" ]]; then
+      sudo wp plugin install --allow-root --activate --path=${_WP_ROOT} ${_WP_PLUGIN}
+    fi
+    if [[ -n "${_WP_THEME:-}" ]]; then
+      sudo wp theme install --allow-root --activate --path=${_WP_ROOT} ${_WP_THEME}
+    fi
+  else
+    _error "this location is not a root path a WordPress site"
   fi
 }
 
