@@ -2766,6 +2766,7 @@ _ssl_certificate() {
 # Nginx block - Helper function for 'Nginx Server Block' whiptail menu
 #
 _nginx_block() {
+  ! hash nginx 2>/dev/null && _error "Nginx is not installed on the system yet"
   _SUB_SELECTION=$( whiptail --notags --title "Nginx Server Block" --radiolist "\nDo you want to manage a sub or main domain?" 10 65 2 \
       "false" "Main domain" ON \
       "true" "Sub domain" OFF \
