@@ -3773,9 +3773,9 @@ cmd_wp() {
       printf "\n\nWordPress Settings:\n"
       read -p "Enter the address of the new site: http://" _WP_URL
       read -p "Enter the title of the new site: " _WP_TITLE
-      # read -p "Enter the username of the site admin: " _WP_USER
+      read -p "Enter the username of the site admin: " _WP_USER
       read -p "Enter the email address for the admin user: " _WP_USER_MAIL
-      _WP_USER=${_WP_USER_MAIL}
+      # _WP_USER=${_WP_USER_MAIL}
       read -p "Enter the password of the site admin: " -s _WP_USER_PASSWORD
       printf "\n"
 
