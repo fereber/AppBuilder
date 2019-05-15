@@ -3787,8 +3787,7 @@ cmd_wp() {
 
       # WP Config file
       sudo grep "require_secure_transport = on" /etc/mysql/*.cnf > /dev/null || _SSL_DB_CONNECTION="# "
-      # _WP_DB_PREF="$(printf "WP_%s_" "$RANDOM"
-      _WP_DB_PREF="WP_"
+      _WP_DB_PREF="$(printf "WP_%s_" "$RANDOM")"
 
       sudo wp core config --allow-root --skip-check \
         --path=${_WP_ROOT} \
