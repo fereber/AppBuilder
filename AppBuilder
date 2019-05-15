@@ -3704,7 +3704,7 @@ HELPWORDPRESS
 
 cmd_wp() {
   # Options parser
-  _OPTS_WP=$(getopt --options hl:iup:t: --long help,debug,location:,install,update,plugin:,theme:,test --name "$(basename "${0}") ${_CMD}" -- "${@}")
+  _OPTS_WP=$(getopt --options hl:iup:t: --long help,debug,location:,install,update,plugin:,theme: --name "$(basename "${0}") ${_CMD}" -- "${@}")
   if [ $? != 0 ] ; then _error "invalid option(s)" ; fi
   eval set -- "${_OPTS_WP}"
 
@@ -3715,7 +3715,6 @@ cmd_wp() {
       -u|--update) _WP_UPDATE=true ; shift ;;
       -p|--plugin) _WP_PLUGIN="${2}" ; shift 2 ;;
       -t|--theme) _WP_THEME="${2}" ; shift 2 ;;
-      --test) _WP_TEST=true ; shift ;;
       -h|--help) cmd_help ${_CMD}; shift ;;
       --debug) set -x ; _DEBUG=true ; shift ;;
       --) shift ; break ;;
@@ -3771,22 +3770,13 @@ cmd_wp() {
       read -p "Enter the database name (can be new as well): " _WP_DB_NAME
       read -p "Enter the database user name (!! existing user !!): " _WP_DB_USER
       read -p "Enter the password for ${_WP_DB_USER} user: " -s _WP_DB_PASSWORD
-      if "${_WP_TEST:-false}"; then
-        _WP_TITLE="Example for Wordpress"
-        _WP_USER_MAIL="example@example.loc"
-        _WP_USER="${_WP_USER_MAIL}"
-        _WP_USER_PASSWORD="${_WP_USER_MAIL}"
-        printf "\nWordPress Settings:\n"
-        read -p "Enter the address of the new site: http://" _WP_URL
-      else
-        printf "\n\nWordPress Settings:\n"
-        read -p "Enter the address of the new site: http://" _WP_URL
-        read -p "Enter the title of the new site: " _WP_TITLE
-        # read -p "Enter the username of the site admin: " _WP_USER
-        read -p "Enter the email address for the admin user: " _WP_USER_MAIL
-        _WP_USER=${_WP_USER_MAIL}
-        read -p "Enter the password of the site admin: " -s _WP_USER_PASSWORD
-      fi
+      printf "\n\nWordPress Settings:\n"
+      read -p "Enter the address of the new site: http://" _WP_URL
+      read -p "Enter the title of the new site: " _WP_TITLE
+      # read -p "Enter the username of the site admin: " _WP_USER
+      read -p "Enter the email address for the admin user: " _WP_USER_MAIL
+      _WP_USER=${_WP_USER_MAIL}
+      read -p "Enter the password of the site admin: " -s _WP_USER_PASSWORD
       printf "\n"
 
       # Download WP (without the default themes and plugins)
