@@ -3,9 +3,9 @@
 # Build your desktop and server apps faster for Linux
 #
 # WARNING:
-# The installation works properly on a fresh install server,
-# if you already had installed something (Nginx, MySql or something else)
-# the install script may not work, or causes unwanted things.
+#   The installation works properly on a fresh install server,
+#   if you already had installed something (Nginx, MySql or something else)
+#   the install script may not work, or causes unwanted things.
 
 _VERSION='1.0.0'
 
