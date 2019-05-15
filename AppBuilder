@@ -973,6 +973,8 @@ _system_settings() {
     gsettings set org.gnome.desktop.interface gtk-theme 'Adwaita'
     gsettings set org.gnome.Terminal.Legacy.Settings theme-variant 'dark'
     gsettings set org.gnome.nautilus.preferences default-folder-viewer 'list-view'
+    gsettings set org.gnome.nautilus.list-view default-visible-columns "['name', 'size', 'date_modified_with_time', 'detailed_type']"
+    gsettings set org.gtk.Settings.FileChooser sort-directories-first true
     gsettings set org.gnome.settings-daemon.plugins.color night-light-enabled true
     gsettings set org.gnome.settings-daemon.plugins.color night-light-schedule-automatic true
     gsettings set org.gnome.desktop.privacy remember-recent-files true
