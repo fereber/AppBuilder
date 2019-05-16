@@ -3115,7 +3115,7 @@ EOF
     # Update PhpMyAdmin:
     #   remove /usr/share/phpmyadmin and run this script with `php` command
     #
-    if [ ! -d "/usr/share/phpmyadmin " ]; then
+    if [ ! -d "/usr/share/phpmyadmin" ]; then
       sudo mkdir -p /usr/share/phpmyadmin
       if [ ! -d "/tmp/phpMyAdmin-${_VER_PHP_MYADMIN}-english/" ]; then
         wget -qO- https://files.phpmyadmin.net/phpMyAdmin/${_VER_PHP_MYADMIN}/phpMyAdmin-${_VER_PHP_MYADMIN}-english.tar.gz -O /tmp/phpMyAdmin-${_VER_PHP_MYADMIN}-english.tar.gz
