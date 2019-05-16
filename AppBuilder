@@ -2488,10 +2488,10 @@ UPSTREAMNDOE
         #
         sudo bash -c "cat >> /etc/nginx/conf.d/${_SUB}${_DOMAIN}.conf" <<EOF
     ##
-    # Fall back to displaying a 404
+    # Fall back to displaying a 404 + redirect to index.php
     ##
     location / {
-        try_files \$uri \$uri/ =404;
+        try_files \$uri \$uri/ /index.php\$is_args\$args;
     }
 
 EOF
