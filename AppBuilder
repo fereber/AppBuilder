@@ -1162,6 +1162,8 @@ _setting_app() {
       pip3 install beautysh
       apm install atom-beautify
     fi
+    apm install editorconfig
+    apm install linter-phpcs
   fi
   if _contains "libdvd" "${_APP_SETTING[@]}"; then
     sudo dpkg-reconfigure libdvd-pkg
