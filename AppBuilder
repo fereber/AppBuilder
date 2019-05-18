@@ -3773,7 +3773,7 @@ cmd_wp() {
       printf "You want install WordPres in this location:\n  ⇢  %s\n\n" "${_WP_ROOT}"
       printf "Make sure that\n  - the location must be in /var/www/...\n"
       printf "  - just continue if you have already created a mysql user\n\n"
-      read -p "Are you sure you want to continue?? [y/n] " REPLY
+      read -p "Are you sure you want to continue? [y/n] " REPLY
 
       if [[ "${REPLY:-}" =~ ^[Nn]$ ]]; then
         printf "Exiting...\n" && exit
