@@ -1840,8 +1840,9 @@ http {
     map \$sent_http_content_type \$expires {
         default                    off;
         text/html                  epoch;
-        text/css                   14d;
+        text/css                   max;
         application/javascript     max;
+        ~font/                    max;
         ~image/                    max;
         ~video/                    max;
         ~audio/                    max;
@@ -2412,7 +2413,13 @@ server {
     ##
     # GZIP
     ##
-    gzip off;
+    gzip on;
+    gzip_comp_level 5;
+    gzip_min_length 256;
+    gzip_vary on;
+    gzip_proxied any;
+    gzip_types text/css application/javascript image/*;
+    gzip_disable "MSIE [1-6]\.(?!.*SV1)";
 
 HTTPSSERVERBLOCK
       fi # ...end if $_SSL true
