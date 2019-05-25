@@ -3089,10 +3089,10 @@ cmd_php() {
       php${_VER_PHP}-soap \
       php${_VER_PHP}-curl
 
-    # Start MySQL server
+    # Start PHP
     sudo systemctl start php${_VER_PHP}-fpm || _error "starting PHP"
 
-    # Enable the database server starting after a reboot
+    # Enable PHP after a reboot
     sudo systemctl enable php${_VER_PHP}-fpm || _error "enabling PHP"
 
     # Enable config at first install
