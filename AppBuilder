@@ -118,6 +118,7 @@ _APP_DEV+=( mysql-server )                        ; _APP_INSTALL[mysql-server]="
 _APP_DEV+=( php7.2 )                              ; _APP_INSTALL[php7.2]="--pack --set php"
 _APP_DEV+=( poedit )                              ; _APP_INSTALL[poedit]="--pack"
 _APP_DEV+=( gnome-builder )                       ; _APP_INSTALL[gnome-builder]="--pack" # + sysprof
+_APP_DEV+=( sass )                                ; _APP_INSTALL[sass]="--fun _install_sass"
 
 # Games
 _APP_GAME+=( aisleriot )                          ; _APP_INSTALL[aisleriot]="--pack"
@@ -1136,6 +1137,18 @@ _install_vagrant() {
     fi
     sudo dpkg -i /tmp/vagrant_${_VER_LAT_VAGRANT}_x86_64.deb
     sudo apt install -fy
+  fi
+}
+
+# Command Line SASS - CSS with superpowers (https://sass-lang.com/)
+#
+_install_sass() {
+  _VER_SASS="1.20.2"
+  if [ ! -f "$HOME/.local/bin/sass" ]; then
+    wget -qO- https://github.com/sass/dart-sass/releases/download/${_VER_SASS}/dart-sass-${_VER_SASS}-linux-x64.tar.gz -O /tmp/dart-sass-${_VER_SASS}-linux-x64.tar.gz
+    tar -xvzf /tmp/dart-sass-${_VER_SASS}-linux-x64.tar.gz -C /tmp
+    mkdir -p $HOME/.local/bin
+    mv -f /tmp/dart-sass/* $HOME/.local/bin/
   fi
 }
 
