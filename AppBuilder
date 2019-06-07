@@ -2756,6 +2756,13 @@ _ssl_certificate() {
         -out /etc/letsencrypt/live/${_DOMAIN}/fullchain.pem \
         -keyout /etc/letsencrypt/live/${_DOMAIN}/privkey.pem \
         -config /tmp/openssl.${_DOMAIN}.cnf > /dev/null 2>&1 || _error "creating self-signed certificate -- '${_DOMAIN}'"
+
+      # Fixing cURL SSL connection issue
+      cat "/etc/letsencrypt/live/${_DOMAIN}/fullchain.pem" | sudo tee /usr/share/ca-certificates/${_DOMAIN}-local-fullchain.crt > /dev/null
+      sudo bash -c "cat >> /etc/ca-certificates.conf" <<CERT
+${_DOMAIN}-local-fullchain.crt
+CERT
+      sudo update-ca-certificates --fresh > /dev/null
     fi
 
     # Import to web browsers (vagrant-triggers or manual import)
@@ -3136,12 +3143,12 @@ max_input_time = 1000
 session.cookie_secure = 1
 session.use_only_cookies = 1
 session.use_strict_mode = 1
-# opcache.enable=1
-# opcache.memory_consumption=128
-# opcache.interned_strings_buffer=8
-# opcache.max_accelerated_files=4000
-# realpath_cache_size = 64k
-# realpath_cache_ttl = 3600
+; opcache.enable=1
+; opcache.memory_consumption=128
+; opcache.interned_strings_buffer=8
+; opcache.max_accelerated_files=4000
+; realpath_cache_size = 64k
+; realpath_cache_ttl = 3600
 log_errors = On
 error_reporting = E_ALL
 display_errors = Off
