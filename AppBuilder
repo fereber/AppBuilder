@@ -115,7 +115,7 @@ _APP_DEV+=( virtualbox )                          ; _APP_INSTALL[virtualbox]="--
 _APP_DEV+=( vagrant )                             ; _APP_INSTALL[vagrant]="--fun _install_vagrant"
 _APP_DEV+=( node )                                ; _APP_INSTALL[node]="--fun cmd_nodejs"
 _APP_DEV+=( mysql-server )                        ; _APP_INSTALL[mysql-server]="--fun cmd_mysql"
-_APP_DEV+=( php7.2 )                              ; _APP_INSTALL[php7.2]="--pack --set php"
+_APP_DEV+=( php7.3 )                              ; _APP_INSTALL[php7.3]="--pack --set php"
 _APP_DEV+=( poedit )                              ; _APP_INSTALL[poedit]="--pack"
 _APP_DEV+=( gnome-builder )                       ; _APP_INSTALL[gnome-builder]="--pack" # + sysprof
 _APP_DEV+=( sass )                                ; _APP_INSTALL[sass]="--fun _install_sass"
@@ -1986,7 +1986,7 @@ location /phpmyadmin {
     location ~ ^/phpmyadmin/(.+\.php)\$ {
         try_files \$uri =404;
         fastcgi_index index.php;
-        fastcgi_pass unix:/run/php/php${_VER_PHP:-7.2}-fpm.sock;
+        fastcgi_pass unix:/run/php/php${_VER_PHP:-7.3}-fpm.sock;
         include /etc/nginx/fastcgi.conf;
     }
 
@@ -2585,7 +2585,7 @@ EOF
         proxy_cache_lock on;
         try_files \$uri =404;
         fastcgi_index index.php;
-        fastcgi_pass unix:/run/php/php${_VER_PHP:-7.2}-fpm.sock;
+        fastcgi_pass unix:/run/php/php${_VER_PHP:-7.3}-fpm.sock;
         include /etc/nginx/fastcgi.conf;
     }
 
@@ -2611,7 +2611,7 @@ FASTCGIBLOCK
     location ~ \.php\$ {
         try_files \$uri =404;
         fastcgi_index index.php;
-        fastcgi_pass unix:/run/php/php${_VER_PHP:-7.2}-fpm.sock;
+        fastcgi_pass unix:/run/php/php${_VER_PHP:-7.3}-fpm.sock;
         include /etc/nginx/fastcgi.conf;
     }
 
@@ -3085,10 +3085,12 @@ cmd_php() {
     _check_desktop && printf "%b\n" "${_CHAS_MESSAGE}" && exit 1
   fi
 
-  local _VER_PHP="7.2"
-  local _VER_PHP_MYADMIN="4.8.5"
+  local _VER_PHP="7.3"
+  local _VER_PHP_MYADMIN="4.9.0.1"
 
   if ! hash php 2>/dev/null; then
+    sudo add-apt-repository ppa:ondrej/php -y
+    sudo apt-get update
 
     # Install php and modules
     sudo apt -y install php${_VER_PHP}-common php${_VER_PHP}-fpm \
@@ -3104,6 +3106,8 @@ cmd_php() {
       php${_VER_PHP}-imagick \
       php${_VER_PHP}-bcmath
 
+    sudo update-alternatives --set php /usr/bin/php${_VER_PHP}
+
     # Start PHP
     sudo systemctl start php${_VER_PHP}-fpm || _error "starting PHP"
 
@@ -3115,6 +3119,7 @@ cmd_php() {
   else
     if [[ "${_OPTS_PHP}" == " --" ]]; then
       printf "  ✔  PHP is already installed\n"
+      printf "\n  %s\n" "$(php -v)"
     fi
   fi
 
@@ -3148,7 +3153,7 @@ EOF
     # PhpMyAdmin
     #
     # Update PhpMyAdmin:
-    #   remove /usr/share/phpmyadmin and run this script with `php` command
+    #   remove /usr/share/phpmyadmin and run this script with `php -c` command
     #
     if [ ! -d "/usr/share/phpmyadmin" ]; then
       sudo mkdir -p /usr/share/phpmyadmin
@@ -3211,10 +3216,10 @@ PHPMYADMINCONFIG
 
     # Restart service
     sudo systemctl restart php${_VER_PHP}-fpm || _error "starting PHP"
-    if hash nginx 2>/dev/null; then
-      sudo systemctl restart nginx || _error "restarting Nginx after PHP settings"
-    fi
     printf "  ✔  PHP is installed and configured\n"
+    if hash nginx 2>/dev/null; then
+      sudo systemctl restart nginx && printf "  ✔  Rrestarting Nginx after PHP settings\n"
+    fi
   fi
 }
 
