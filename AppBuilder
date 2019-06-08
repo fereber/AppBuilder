@@ -75,7 +75,6 @@ _APP_MEDIA+=( shotwell )                          ; _APP_INSTALL[shotwell]="--pa
 _APP_MEDIA+=( exiftool )                          ; _APP_INSTALL[exiftool]="--pack" # libimage-exiftool-perl
 _APP_MEDIA+=( inkscape )                          ; _APP_INSTALL[inkscape]="--pack"
 _APP_MEDIA+=( librecad )                          ; _APP_INSTALL[librecad]="--pack"
-_APP_MEDIA+=( gnome-music )                       ; _APP_INSTALL[gnome-music]="--pack"
 _APP_MEDIA+=( rhythmbox )                         ; _APP_INSTALL[rhythmbox]="--pack"
 _APP_MEDIA+=( picard )                            ; _APP_INSTALL[picard]="--flat org.musicbrainz.Picard"
 _APP_MEDIA+=( audacity )                          ; _APP_INSTALL[audacity]="--flat org.audacityteam.Audacity"
