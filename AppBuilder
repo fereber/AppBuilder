@@ -115,7 +115,7 @@ _APP_DEV+=( virtualbox )                          ; _APP_INSTALL[virtualbox]="--
 _APP_DEV+=( vagrant )                             ; _APP_INSTALL[vagrant]="--fun _install_vagrant"
 _APP_DEV+=( node )                                ; _APP_INSTALL[node]="--fun cmd_nodejs"
 _APP_DEV+=( mysql-server )                        ; _APP_INSTALL[mysql-server]="--fun cmd_mysql"
-_APP_DEV+=( php7.3 )                              ; _APP_INSTALL[php7.3]="--pack --set php"
+_APP_DEV+=( php )                                 ; _APP_INSTALL[php]="--fun _install_php"
 _APP_DEV+=( poedit )                              ; _APP_INSTALL[poedit]="--pack"
 _APP_DEV+=( gnome-builder )                       ; _APP_INSTALL[gnome-builder]="--pack" # + sysprof
 _APP_DEV+=( sass )                                ; _APP_INSTALL[sass]="--fun _install_sass"
@@ -1167,6 +1167,24 @@ _install_anki() {
   fi
 }
 
+# Install php
+#
+_install_php() {
+  sudo add-apt-repository ppa:ondrej/php -y
+  sudo apt-get update
+  sudo apt -y install php7.3
+
+  sudo apt install -y php-codesniffer
+  ! hash git 2>/dev/null && sudo apt install -y git
+
+  # Downloading WordPress Coding Standard
+  git clone -b master https://github.com/WordPress-Coding-Standards/WordPress-Coding-Standards.git /tmp/WordPress-Coding-Standards
+  sudo cp -r /tmp/WordPress-Coding-Standards/WordPress /usr/share/php/PHP/CodeSniffer/src/Standards/
+  sudo cp -r /tmp/WordPress-Coding-Standards/WordPress-Core /usr/share/php/PHP/CodeSniffer/src/Standards/
+  sudo cp -r /tmp/WordPress-Coding-Standards/WordPress-Docs /usr/share/php/PHP/CodeSniffer/src/Standards/
+  sudo cp -r /tmp/WordPress-Coding-Standards/WordPress-Extra /usr/share/php/PHP/CodeSniffer/src/Standards/
+}
+
 # Settings after installation
 #
 _setting_app() {
@@ -1178,16 +1196,6 @@ _setting_app() {
     fi
     apm install editorconfig
     apm install linter-phpcs
-  fi
-  if _contains "php" "${_APP_SETTING[@]}"; then
-    sudo apt install -y php-codesniffer
-    ! hash git 2>/dev/null && sudo apt install -y git
-    # Downloading WordPress Coding Standard
-    git clone -b master https://github.com/WordPress-Coding-Standards/WordPress-Coding-Standards.git /tmp/WordPress-Coding-Standards
-    sudo cp -r /tmp/WordPress-Coding-Standards/WordPress /usr/share/php/PHP/CodeSniffer/src/Standards/
-    sudo cp -r /tmp/WordPress-Coding-Standards/WordPress-Core /usr/share/php/PHP/CodeSniffer/src/Standards/
-    sudo cp -r /tmp/WordPress-Coding-Standards/WordPress-Docs /usr/share/php/PHP/CodeSniffer/src/Standards/
-    sudo cp -r /tmp/WordPress-Coding-Standards/WordPress-Extra /usr/share/php/PHP/CodeSniffer/src/Standards/
   fi
   if _contains "libdvd" "${_APP_SETTING[@]}"; then
     sudo dpkg-reconfigure libdvd-pkg
