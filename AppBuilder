@@ -88,6 +88,7 @@ _APP_MEDIA+=( libdvdread4 )                       ; _APP_INSTALL[libdvdread4]="-
 _APP_MEDIA+=( gstreamer1.0-plugins-bad )          ; _APP_INSTALL[gstreamer1.0-plugins-bad]="--pack"
 _APP_MEDIA+=( gstreamer1.0-plugins-ugly )         ; _APP_INSTALL[gstreamer1.0-plugins-ugly]="--pack"
 _APP_MEDIA+=( libdvd-pkg )                        ; _APP_INSTALL[libdvd-pkg]="--pack --set libdvd" # fix: sudo dpkg-reconfigure libdvd-pkg
+_APP_MEDIA+=( flowblade )                         ; _APP_INSTALL[lflowblade]="--deb https://github.com/jliljebl/flowblade/releases/download/v2.0/flowblade-2.0.0-1_all.deb"
 
 # Web & Communication & News
 _APP_NET+=( google-chrome )                       ; _APP_INSTALL[google-chrome]="--deb https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb"
