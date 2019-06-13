@@ -115,7 +115,7 @@ _APP_DEV+=( virtualbox )                          ; _APP_INSTALL[virtualbox]="--
 _APP_DEV+=( vagrant )                             ; _APP_INSTALL[vagrant]="--fun _install_vagrant"
 _APP_DEV+=( node )                                ; _APP_INSTALL[node]="--fun cmd_nodejs"
 _APP_DEV+=( mysql-server )                        ; _APP_INSTALL[mysql-server]="--fun cmd_mysql"
-_APP_DEV+=( php )                                 ; _APP_INSTALL[php]="--fun _install_php"
+_APP_DEV+=( php )                                 ; _APP_INSTALL[php]="--fun cmd_php --force"
 _APP_DEV+=( poedit )                              ; _APP_INSTALL[poedit]="--pack"
 _APP_DEV+=( gnome-builder )                       ; _APP_INSTALL[gnome-builder]="--pack" # + sysprof
 _APP_DEV+=( sass )                                ; _APP_INSTALL[sass]="--fun _install_sass"
@@ -1162,24 +1162,6 @@ _install_anki() {
   fi
 }
 
-# Install php
-#
-_install_php() {
-  sudo add-apt-repository ppa:ondrej/php -y
-  sudo apt-get update
-  sudo apt -y install php7.3
-
-  sudo apt install -y php-codesniffer
-  ! hash git 2>/dev/null && sudo apt install -y git
-
-  # Downloading WordPress Coding Standard
-  git clone -b master https://github.com/WordPress-Coding-Standards/WordPress-Coding-Standards.git /tmp/WordPress-Coding-Standards
-  sudo cp -r /tmp/WordPress-Coding-Standards/WordPress /usr/share/php/PHP/CodeSniffer/src/Standards/
-  sudo cp -r /tmp/WordPress-Coding-Standards/WordPress-Core /usr/share/php/PHP/CodeSniffer/src/Standards/
-  sudo cp -r /tmp/WordPress-Coding-Standards/WordPress-Docs /usr/share/php/PHP/CodeSniffer/src/Standards/
-  sudo cp -r /tmp/WordPress-Coding-Standards/WordPress-Extra /usr/share/php/PHP/CodeSniffer/src/Standards/
-}
-
 # Settings after installation
 #
 _setting_app() {
@@ -1272,7 +1254,7 @@ cmd_install() {
     eval set -- "${@}"
   fi
   # Options parser
-  _OPTS_INSTALL=$(getopt --options ha:pr:k:d:s::f: --long help,debug,app:,pack,repo:,key:,deb:,snap::,flat:,appimg:,ppa:,set:,fun: --name "$(basename "${0}") ${_CMD}" -- "${@}")
+  _OPTS_INSTALL=$(getopt --options ha:pr:k:d:s::f: --long help,debug,app:,pack,repo:,key:,deb:,snap::,flat:,appimg:,ppa:,set:,fun:,force --name "$(basename "${0}") ${_CMD}" -- "${@}")
   if [ $? != 0 ] ; then _error "invalid option(s)" ; fi
   eval set -- "${_OPTS_INSTALL}"
 
@@ -1354,11 +1336,16 @@ cmd_install() {
       --ppa) _PPA_ARGS=${2}
         shift 2 ;;
       --fun) _FUN_ARGS=${2}
-        ${_FUN_ARGS}
+        if ${_FORCE:false}; then
+          ${_FUN_ARGS} --force
+        else
+          ${_FUN_ARGS}
+        fi
         shift 2 ;;
       --set) _SET_ARGS=${2}
         _APP_SETTING+=( "${_SET_ARGS}" )
         shift 2 ;;
+      --force) _FORCE=true  ; shift ;;
       --) shift ; break ;;
       *) _error "internal option error '${1}'" ;;
     esac
@@ -2956,8 +2943,9 @@ The \`php\` command installs PHP on system.
     $(basename "${0}") php [options] [<arguments>...]
 
   Options:
-    -c, --config        Config Php <<PHPCONFIG...
-                        and PhpMyAmin <<PHPMYADMINCONFIG...
+    -c, --config        Server config
+                          - php <<PHPCONFIG...
+                          - phpMyAmin <<PHPMYADMINCONFIG...
     -h, --help          Display this help
         --debug         Run debug mode
         --force         Enable running on desktop
@@ -2988,12 +2976,29 @@ cmd_php() {
   local _VER_PHP="7.3"
   local _VER_PHP_MYADMIN="4.9.0.1"
 
-  if ! hash php 2>/dev/null; then
+  # Enable config at first install
+  if ! hash  php 2>/dev/null; then
+    _CONFIG=true
+  fi
+
+  # Install PHP
+  if [ ! -f "/etc/apt/sources.list.d/ondrej-ubuntu-php-${_VAR['Distro Ubuntu Codename']}.list" ]; then
     sudo add-apt-repository ppa:ondrej/php -y
     sudo apt-get update
+  fi
+  sudo apt -y install php${_VER_PHP}-common
 
-    # Install php and modules
-    sudo apt -y install php${_VER_PHP}-common php${_VER_PHP}-fpm \
+  # Set which version to use
+  sudo update-alternatives --set php /usr/bin/php${_VER_PHP}
+
+  if ! _check_desktop; then
+
+    ##
+    # PHP on Server
+    ##
+
+    # Install php modules
+    sudo apt -y install php${_VER_PHP}-fpm \
       php${_VER_PHP}-mbstring \
       php${_VER_PHP}-xmlrpc \
       php${_VER_PHP}-gd \
@@ -3006,27 +3011,16 @@ cmd_php() {
       php${_VER_PHP}-imagick \
       php${_VER_PHP}-bcmath
 
-    sudo update-alternatives --set php /usr/bin/php${_VER_PHP}
-
     # Start PHP
     sudo systemctl start php${_VER_PHP}-fpm || _error "starting PHP"
 
     # Enable PHP after a reboot
     sudo systemctl enable php${_VER_PHP}-fpm || _error "enabling PHP"
 
-    # Enable config at first install
-    _CONFIG=true
-  else
-    if [[ "${_OPTS_PHP}" == " --" ]]; then
-      printf "  ✔  PHP is already installed\n"
-      printf "\n  %s\n" "$(php -v)"
-    fi
-  fi
+    if "${_CONFIG:-false}"; then
+      _check_timezone
 
-  if "${_CONFIG:-false}"; then
-    _check_timezone
-
-    sudo bash -c "cat > /etc/php/${_VER_PHP}/fpm/conf.d/myphp.ini" <<EOF
+      sudo bash -c "cat > /etc/php/${_VER_PHP}/fpm/conf.d/myphp.ini" <<EOF
 cgi.fix_pathinfo = 0
 memory_limit = 1024M
 post_max_size = 64M
@@ -3050,28 +3044,28 @@ date.timezone = ${_VAR[Timezone]}
 disable_functions = exec,shell_exec,pcntl_alarm,pcntl_fork,pcntl_waitpid,pcntl_wait,pcntl_wifexited,pcntl_wifstopped,pcntl_wifsignaled,pcntl_wifcontinued,pcntl_wexitstatus,pcntl_wtermsig,pcntl_wstopsig,pcntl_signal,pcntl_signal_dispatch,pcntl_get_last_error,pcntl_strerror,pcntl_sigprocmask,pcntl_sigwaitinfo,pcntl_sigtimedwait,pcntl_exec,pcntl_getpriority,pcntl_setpriority,
 EOF
 
-    # PhpMyAdmin
-    #
-    # Update PhpMyAdmin:
-    #   remove /usr/share/phpmyadmin and run this script with `php -c` command
-    #
-    if [ ! -d "/usr/share/phpmyadmin" ]; then
-      sudo mkdir -p /usr/share/phpmyadmin
-      if [ ! -d "/tmp/phpMyAdmin-${_VER_PHP_MYADMIN}-english/" ]; then
-        wget -qO- https://files.phpmyadmin.net/phpMyAdmin/${_VER_PHP_MYADMIN}/phpMyAdmin-${_VER_PHP_MYADMIN}-english.tar.gz -O /tmp/phpMyAdmin-${_VER_PHP_MYADMIN}-english.tar.gz
-        tar -xvzf /tmp/phpMyAdmin-${_VER_PHP_MYADMIN}-english.tar.gz -C /tmp
-        sudo mv -f /tmp/phpMyAdmin-${_VER_PHP_MYADMIN}-english/* /usr/share/phpmyadmin/
+      # PhpMyAdmin
+      #
+      # Update PhpMyAdmin:
+      #   remove /usr/share/phpmyadmin and run this script with `php -c` command
+      #
+      if [ ! -d "/usr/share/phpmyadmin" ]; then
+        sudo mkdir -p /usr/share/phpmyadmin
+        if [ ! -d "/tmp/phpMyAdmin-${_VER_PHP_MYADMIN}-english/" ]; then
+          wget -qO- https://files.phpmyadmin.net/phpMyAdmin/${_VER_PHP_MYADMIN}/phpMyAdmin-${_VER_PHP_MYADMIN}-english.tar.gz -O /tmp/phpMyAdmin-${_VER_PHP_MYADMIN}-english.tar.gz
+          tar -xvzf /tmp/phpMyAdmin-${_VER_PHP_MYADMIN}-english.tar.gz -C /tmp
+          sudo mv -f /tmp/phpMyAdmin-${_VER_PHP_MYADMIN}-english/* /usr/share/phpmyadmin/
+        fi
+
+        # Fix X-XSS-Protection duplicate error in console of Chrome
+        # sudo sed -i '/X-XSS-Protection/s/^/\/\//' /usr/share/phpmyadmin/libraries/classes/Header.php
+        # opposite operation: '/X-XSS-Protection/s/^#//'
       fi
 
-      # Fix X-XSS-Protection duplicate error in console of Chrome
-      # sudo sed -i '/X-XSS-Protection/s/^/\/\//' /usr/share/phpmyadmin/libraries/classes/Header.php
-      # opposite operation: '/X-XSS-Protection/s/^#//'
-    fi
+      # PhpMyAdmin config file
+      if ! hash  pwgen 2>/dev/null; then sudo apt-get -y install pwgen; fi ; _BLOWFISH_SEC=$(pwgen -s 32 1)
 
-    # PhpMyAdmin config file
-    if ! hash 2>/dev/null 'pwgen'; then sudo apt-get -y install pwgen; fi ; _BLOWFISH_SEC=$(pwgen -s 32 1)
-
-    sudo bash -c "cat > /usr/share/phpmyadmin/config.inc.php" <<PHPMYADMINCONFIG
+      sudo bash -c "cat > /usr/share/phpmyadmin/config.inc.php" <<PHPMYADMINCONFIG
 <?php
 /* Servers configuration */
 \$i = 0;
@@ -3105,22 +3099,42 @@ EOF
 ?>
 PHPMYADMINCONFIG
 
-    # Premissions
-    local _USER_WEB="www-data"
-    sudo chown -R ${_USER_WEB}:${_USER_WEB} /usr/share/phpmyadmin
-    sudo chmod 755 -R /usr/share/phpmyadmin
-    if [ -f "/usr/share/phpmyadmin/tmp" ]; then
-      sudo chmod 700 /usr/share/phpmyadmin/tmp
-    fi
-    sudo chmod 644 /usr/share/phpmyadmin/config.inc.php
+      # Premissions
+      local _USER_WEB="www-data"
+      sudo chown -R ${_USER_WEB}:${_USER_WEB} /usr/share/phpmyadmin
+      sudo chmod 755 -R /usr/share/phpmyadmin
+      if [ -f "/usr/share/phpmyadmin/tmp" ]; then
+        sudo chmod 700 /usr/share/phpmyadmin/tmp
+      fi
+      sudo chmod 644 /usr/share/phpmyadmin/config.inc.php
 
-    # Restart service
-    sudo systemctl restart php${_VER_PHP}-fpm || _error "starting PHP"
-    printf "  ✔  PHP is installed and configured\n"
-    if hash nginx 2>/dev/null; then
-      sudo systemctl restart nginx && printf "  ✔  Rrestarting Nginx after PHP settings\n"
+      # Restart service
+      sudo systemctl restart php${_VER_PHP}-fpm || _error "starting PHP"
+      if hash nginx 2>/dev/null; then
+        sudo systemctl restart nginx && printf "  ✔  Rrestarting Nginx after PHP settings\n"
+      fi
     fi
+  else
+
+    ##
+    # PHP on Desktop
+    ##
+
+    sudo apt install -y php-codesniffer
+    ! hash git 2>/dev/null && sudo apt install -y git
+
+    # Downloading WordPress Coding Standard
+    if [ ! -d "/tmp/WordPress-Coding-Standards" ]; then
+      git clone -b master https://github.com/WordPress-Coding-Standards/WordPress-Coding-Standards.git /tmp/WordPress-Coding-Standards
+    fi
+    sudo cp -r /tmp/WordPress-Coding-Standards/WordPress /usr/share/php/PHP/CodeSniffer/src/Standards/
+    sudo cp -r /tmp/WordPress-Coding-Standards/WordPress-Core /usr/share/php/PHP/CodeSniffer/src/Standards/
+    sudo cp -r /tmp/WordPress-Coding-Standards/WordPress-Docs /usr/share/php/PHP/CodeSniffer/src/Standards/
+    sudo cp -r /tmp/WordPress-Coding-Standards/WordPress-Extra /usr/share/php/PHP/CodeSniffer/src/Standards/
   fi
+
+  printf "\n  ✔  PHP is installed and configured\n"
+  printf "\n  %s\n" "$(php -v)"
 }
 
 # COMMAND: LEMP
