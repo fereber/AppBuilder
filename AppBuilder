@@ -1571,7 +1571,7 @@ cmd_nginx() {
   local _VER_PCRE="8.43"
   local _VER_ZLIB="1.2.11"
   # local _VER_LAT_OPENSSL="$(wget -qO- --no-check-certificate https://www.openssl.org/source/ | egrep -o 'openssl-[A-Za-z0-9\.]+.tar.gz' | sort -V | tail -1 | sed -nre 's|^[^0-9]*(([0-9]+\.)*[A-Za-z0-9]+).*|\1|p')"
-  local _VER_OPENSSL="1.1.1b"
+  local _VER_OPENSSL="1.1.1c"
   local _VER_GEOIP2="3.2"
   local _USER_WEB="www-data"
 
