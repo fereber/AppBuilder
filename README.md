@@ -18,15 +18,15 @@ The AppBuilder is a post install script to help building and setting your system
 
 -   Nginx Server ( latest mainline version )
 -   MySQL ( v5.7 )
--   Php ( v7.2 )
+-   Php ( v7.3 )
 -   WordPress CLI ( latest )
 -   NodeJS
--   Apache Server
--   Odoo Server ( v12.0 - Community version)
+-   Apache Server ( very simple )
+-   Odoo Server ( v12.0 - Community version )
 -   ...
 -   and their dependencies
 
-> WARNING: The installation works properly on a fresh install server, if you already had installed something (Nginx, MySql or something else ) the install script may not work, or causes unwanted things.
+> WARNING: The installation works properly on a fresh install server, if you already had installed something (Nginx, MySql or something else) the install script may not work, or causes unwanted things.
 
 #### _Tested on_
 
