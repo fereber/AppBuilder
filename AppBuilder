@@ -1748,11 +1748,6 @@ ports=80,443/tcp
 NGINXUFW
     sudo ufw allow 'Nginx Full' comment 'Web Server (HTTP + HTTPS)' &>/dev/null  && printf "  ⇢  Ufw rule: allow Nginx Full\n"
 
-    # Restoring all server config files
-    if [ -d "/etc/nginx_backup_${_BACKUP_TIME:-}" ]; then
-      sudo cp /etc/nginx_backup_${_BACKUP_TIME:-}/conf.d/* /etc/nginx/conf.d/
-    fi
-
     printf "  ✔  Nginx is downloaded and installed.\n"
     # Continue configurations...
     _CONFIG=true
@@ -1768,6 +1763,11 @@ NGINXUFW
       /etc/{nginx/conf.d,nginx/snippets,letsencrypt} \
       /var/www/default_server/{public,cache}
     if [ -d "/etc/nginx/html" ]; then sudo rm -rf /etc/nginx/html; fi
+
+    # Restoring all server config files if rebuilding
+    if [ -d "/etc/nginx_backup_${_BACKUP_TIME:-}" ]; then
+      sudo cp /etc/nginx_backup_${_BACKUP_TIME:-}/conf.d/* /etc/nginx/conf.d/
+    fi
 
     # Set ownership and permissions
     sudo chown -R ${_USER_WEB}:${_USER_WEB} /var/www
