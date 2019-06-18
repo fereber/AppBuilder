@@ -1954,21 +1954,24 @@ NGINXPROXY
 
     # PHP FastCGI config
     sudo bash -c "cat > /etc/nginx/snippets/php_fastcgi.conf" <<BLOCKPHP
+##
+# PHP FastCGI config
+##
 try_files \$fastcgi_script_name =404;
 
 # default fastcgi_params
 include /etc/nginx/fastcgi_params;
 
 # fastcgi settings
-fastcgi_pass			unix:/var/run/php/php${_VER_PHP:-7.3}-fpm.sock;
-fastcgi_index			index.php;
-fastcgi_buffers			8 16k;
-fastcgi_buffer_size		32k;
+fastcgi_pass           unix:/var/run/php/php${_VER_PHP:-7.3}-fpm.sock;
+fastcgi_index          index.php;
+fastcgi_buffers        8 16k;
+fastcgi_buffer_size    32k;
 
 # fastcgi params
-fastcgi_param DOCUMENT_ROOT		\$realpath_root;
-fastcgi_param SCRIPT_FILENAME	\$realpath_root\$fastcgi_script_name;
-fastcgi_param PHP_ADMIN_VALUE	"open_basedir=\$base/:/usr/lib/php/:/tmp/";
+fastcgi_param DOCUMENT_ROOT      \$realpath_root;
+fastcgi_param SCRIPT_FILENAME    \$realpath_root\$fastcgi_script_name;
+fastcgi_param PHP_ADMIN_VALUE    "open_basedir=\$base/:/usr/lib/php/:/tmp/";
 BLOCKPHP
 
     # Nginx general config
@@ -2119,7 +2122,8 @@ index index.htm index.html;
 # Index fallback
 ##
 location / {
-    try_files \$uri \$uri/ /index.html;
+    try_files \$uri \$uri/ =404;
+    # try_files \$uri \$uri/ /index.html;
 }
 BLOCKFRONTEND
 
@@ -2134,7 +2138,8 @@ index index.php;
 # Index fallback
 ##
 location / {
-    try_files \$uri \$uri/ /index.php?\$query_string;
+    try_files \$uri \$uri/ =404;
+    # try_files \$uri \$uri/ /index.php?\$query_string;
 }
 
 ##
