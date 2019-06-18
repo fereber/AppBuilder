@@ -2018,52 +2018,18 @@ NGINXGENERAL
 ##
 # WordPress specific config
 ##
-
-# WordPress: allow TinyMCE
-location = /wp-includes/js/tinymce/wp-tinymce.php {
-    include  /etc/nginx/snippets/php_fastcgi.conf;
-}
-
-# WordPress: deny wp-content, wp-includes php files
-location ~* ^/(?:wp-content|wp-includes)/.*\.php\$ {
-    deny all;
-}
-
-# WordPress: deny wp-content/uploads nasty stuff
-location ~* ^/wp-content/uploads/.*\.(?:s?html?|php|js|swf)\$ {
-    deny all;
-}
-
-# WordPress: deny wp-content/plugins (except earlier rules)
-location ~ ^/wp-content/plugins {
-    deny all;
-}
-
-# WordPress: deny scripts and styles concat
-location ~* \/wp-admin\/load-(?:scripts|styles)\.php {
-    deny all;
-}
-
-# WordPress: deny general stuff
-location ~* ^/(?:xmlrpc\.php|wp-links-opml\.php|wp-config\.php|wp-config-sample\.php|wp-comments-post\.php|readme\.html|license\.txt)$ {
-    deny all;
-}
-
-# WordPress: throttle wp-login.php
-location = /wp-login.php {
-    limit_req zone=login burst=2 nodelay;
-    include  /etc/nginx/snippets/php_fastcgi.conf;
-}
-
-# WordPress: EDD plugin
+location = /wp-config.php { deny all; }
+location = /wp-config-sample.php { return 404; }
+location ~* /(license.txt|readme.html|nginx.conf) { deny all; }
+location ~* /(?:uploads|files|media)/.*\.php\$ { deny all; }
+location ~* ^/(wp-content)/(.*?)\.(zip|gz|tar|bzip2|7z)\$ { deny all; }
+# WordPress EDD plugin
 rewrite ^/wp-content/uploads/edd/(.*)\.zip\$ / permanent;
 rewrite ^/media/edd/(.*)\.zip\$ / permanent;
 
 ##
-# PhpMyadmin
+# PhpMyadmin (block attempts to access phpMyAdmin - if you actually use it, don't include this rule!)
 ##
-
-# PhpMyadmin: block attempts to access phpMyAdmin (If you actually use it, don't include this rule!)
 # location ~* .([pP]hp[mM]y[aA]dmin) { return 404; }
 
 ##
