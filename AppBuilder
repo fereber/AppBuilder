@@ -1506,7 +1506,7 @@ ${_NGINX_NOTE}
     -b, --block         Add or update a server block
                         argument <domainname>
         --type=<args>   Set type for server block
-                        block types: <basic>|<php>|<phpcache>|<odoo>|<nodejs>
+                        block types: <basic>|<phpcache>|<odoo>|<nodejs>
                         [default: basic]
         --sub           Set subdomain alias
                         argument <subdomainalias>
@@ -1549,7 +1549,7 @@ cmd_nginx() {
       --sub) _SUB="${2}" ; shift 2 ;;
       --type)
         case "${2}" in
-          "basic"|"php"|"phpcache"|"odoo"|"nodejs") _BLOCK_TYPE=${2} ; shift 2 ;;
+          "basic"|"phpcache"|"odoo"|"nodejs") _BLOCK_TYPE=${2} ; shift 2 ;;
           *) _error "unsupported type of server block -- '${2}'" ; shift ;;
         esac ;;
       --php-admin) _PHP_ADMIN=true ; shift ;;
@@ -1971,7 +1971,7 @@ fastcgi_buffer_size    32k;
 # fastcgi params
 fastcgi_param DOCUMENT_ROOT      \$realpath_root;
 fastcgi_param SCRIPT_FILENAME    \$realpath_root\$fastcgi_script_name;
-fastcgi_param PHP_ADMIN_VALUE    "open_basedir=\$base/:/usr/lib/php/:/tmp/";
+fastcgi_param PHP_ADMIN_VALUE    "open_basedir=\$base/:/usr/lib/php/:/tmp/:/usr/share/phpmyadmin/";
 BLOCKPHP
 
     # Nginx general config
@@ -2116,7 +2116,7 @@ NGINXLOGROTATE
 ##
 # Index directive
 ##
-index index.htm index.html;
+index index.php index.htm index.html;
 
 ##
 # Index fallback
@@ -2124,21 +2124,6 @@ index index.htm index.html;
 location / {
     try_files \$uri \$uri/ =404;
     # try_files \$uri \$uri/ /index.html;
-}
-BLOCKFRONTEND
-
-    # PHP config [ ${_BLOCK_TYPE} == 'php' ]
-    sudo bash -c "cat > /etc/nginx/snippets/php.conf" <<BLOCKPHP
-##
-# Index directive
-##
-index index.php;
-
-##
-# Index fallback
-##
-location / {
-    try_files \$uri \$uri/ =404;
     # try_files \$uri \$uri/ /index.php?\$query_string;
 }
 
@@ -2148,7 +2133,7 @@ location / {
 location ~ \.php\$ {
     include  /etc/nginx/snippets/php_fastcgi.conf;
 }
-BLOCKPHP
+BLOCKFRONTEND
 
     # Odoo config [ ${_BLOCK_TYPE} == 'odoo' ]
     sudo bash -c "cat >> /etc/nginx/snippets/odoo.conf" <<ODOOBLOCK
@@ -2502,6 +2487,7 @@ HTTPSSERVERBLOCK
     ##
     # Additional config
     ##
+    # disable_phpadmin #include /etc/nginx/snippets/phpmyadmin.conf;
     include /etc/nginx/snippets/general.conf;
     include /etc/nginx/snippets/restrictions.conf;
 }
@@ -2573,6 +2559,7 @@ HTTPSERVERBLOCK
     ##
     # Additional config
     ##
+    # disable_phpadmin # include /etc/nginx/snippets/phpmyadmin.conf;
     include /etc/nginx/snippets/general.conf;
     include /etc/nginx/snippets/restrictions.conf;
 }
@@ -2587,13 +2574,15 @@ HTTPSERVERBLOCK
 ##
 # Index directive
 ##
-index index.php;
+index index.php index.htm index.html;
 
 ##
 # Index fallback
 ##
 location / {
-    try_files \$uri \$uri/ /index.php?\$query_string;
+    try_files \$uri \$uri/ =404;
+    # try_files \$uri \$uri/ /index.html;
+    # try_files \$uri \$uri/ /index.php?\$query_string;
 }
 
 ##
@@ -2677,6 +2666,10 @@ location / {
     include /etc/nginx/snippets/proxy.conf;
 }
 NODEBLOCK
+      fi
+
+      if "${_PHP_ADMIN:false}"; then
+        sudo sed -i -r 's/# disable_phpadmin #//g' /etc/nginx/conf.d/${_SUB}${_DOMAIN}.conf
       fi
 
       # Reload Nginx
@@ -2856,7 +2849,6 @@ _nginx_block() {
 
   _BLOCK_TYPE_SELECTION=$( whiptail --notags --title "Nginx Server Block" --radiolist "\nWhat type of block do you want?" 14 65 5 \
       "basic" "Basic" ON \
-      "php" "Php" OFF \
       "phpcache" "Php FastCGI Cache" OFF \
       "odoo" "Odoo" OFF \
       "nodejs" "Node.JS" OFF \
@@ -3244,7 +3236,7 @@ PHPMYADMINCONFIG
       # Restart service
       sudo systemctl restart php${_VER_PHP}-fpm || _error "starting PHP"
       if hash nginx 2>/dev/null; then
-        sudo systemctl restart nginx && printf "  ✔  Rrestarting Nginx after PHP settings\n"
+        sudo systemctl restart nginx && printf "\n  ✔  Rrestarting Nginx after PHP settings\n"
       fi
     fi
   else
@@ -3266,8 +3258,7 @@ PHPMYADMINCONFIG
     sudo cp -r /tmp/WordPress-Coding-Standards/WordPress-Extra /usr/share/php/PHP/CodeSniffer/src/Standards/
   fi
 
-  printf "\n  ✔  PHP is installed and configured\n"
-  printf "\n  %s\n" "$(php -v)"
+  printf "  ✔  PHP is installed and configured\n"
 }
 
 # COMMAND: LEMP
